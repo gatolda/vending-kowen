@@ -29,7 +29,8 @@ import signal
 
 GPIO_EV3 = 16       # Pin 36 del header — Relé canal 1 → EV #3 llenado
                     # (GPIO 21/pin 40 estaba dañado en la Pi del piloto, cambiado a 16)
-GPIO_PUMP = 20      # Pin 38 del header — Relé canal 2 → Bomba despacho 220V
+GPIO_PUMP = 26      # Pin 37 del header — Relé canal 2 → Bomba despacho 220V
+                    # (Pin 38/GPIO 20 descartado en testing, posible problema en la Pi)
 
 # Este módulo Songle SRD-05VDC-SL-C resultó ser active-HIGH
 # (se activa con 3.3V en IN1/IN2, no con GND).
