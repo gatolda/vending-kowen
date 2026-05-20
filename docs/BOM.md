@@ -34,7 +34,7 @@ Hardware preexistente que NO compramos (ya está instalado en cada máquina):
 | 6 | Optoacopladores | PC817 | 6 | $0.30 | $2 | Aislar billetero/monedero/caudalímetro/inhibits |
 | 7 | ADC I2C | ADS1115 16-bit 4 canales | 1 | $5 | $5 | Para sondas TDS y eventualmente presión |
 | 8 | Sondas TDS | TDS sensor analógico (Gravity) | 2 | $5 | $10 | Pre y post RO membrane |
-| 9 | Sensor nivel ultrasónico | JSN-SR04T (waterproof) | 1 | $8 | $8 | Tanque 200L. Con tubo guía PVC |
+| 9 | ~~Sensor nivel ultrasónico~~ | ~~JSN-SR04T~~ | 0 | — | $0 | **NO requerido**: máquina ya trae 2 flotadores reed switch (MIN + MAX) instalados |
 | 10 | Presostato | Low-pressure switch 1/4" 0.3 bar | 1 | $10 | $10 | Protección bomba en seco |
 | 11 | Sensor corriente | SCT-013-030 (CT clamp 30A) | 2 | $5 | $10 | Uptime bomba booster + UV |
 | 12 | Lector RFID/NFC | PN532 (SPI/I2C/UART) | 1 | $10 | $10 | Reemplaza lector original. Soporta NFC móvil |
@@ -44,7 +44,7 @@ Hardware preexistente que NO compramos (ya está instalado en cada máquina):
 | 16 | Tubo PVC 50mm | Corte 40cm + tapa con orificio | 1 | $3 | $3 | Guía para sensor ultrasónico en tanque |
 | 17 | Resistencias kit | 1kΩ, 4.7kΩ, 10kΩ, 15kΩ | kit | — | $3 | Pull-up/down y divisores de voltaje |
 | 18 | Terminales tornillo | Regletas 6 pos × 5 | 5 | $1 | $5 | Conexión AC a relés |
-| | **Subtotal por máquina** | | | | **~$168** | Control mixto AC+DC (6 AC + 2 DC). Bomba despacho es 220V AC, no DC. Fuente 24V no se compra. Transductor presión diferido. |
+| | **Subtotal por máquina** | | | | **~$160** | Sin JSN-SR04T (flotadores existentes), sin fuente 24V (interna), sin transductor presión (diferido). |
 
 ## Adicionales fijos (una vez)
 
@@ -71,10 +71,10 @@ Hardware preexistente que NO compramos (ya está instalado en cada máquina):
 
 | Concepto | USD |
 |---|---|
-| Hardware módulos Pi (15 × $168) | $2,520 |
+| Hardware módulos Pi (15 × $160) | $2,400 |
 | Adicionales fijos | $145 |
 | Filtros repuesto | $570 |
-| **TOTAL** | **~$3,235 USD** |
+| **TOTAL** | **~$3,115 USD** |
 
 Confirmado en taller 2026-05-14:
 - Máquina ya trae fuente 24VDC interna (no se compra Mean Well)
