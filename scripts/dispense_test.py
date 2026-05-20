@@ -27,12 +27,13 @@ import signal
 # CONFIGURACIÓN — ajustar según cableado real
 # ============================================
 
-GPIO_EV3 = 21       # Pin 40 del header — Relé canal 1 → EV #3 llenado
+GPIO_EV3 = 16       # Pin 36 del header — Relé canal 1 → EV #3 llenado
+                    # (GPIO 21/pin 40 estaba dañado en la Pi del piloto, cambiado a 16)
 GPIO_PUMP = 20      # Pin 38 del header — Relé canal 2 → Bomba despacho 220V
 
-# Módulos de relé chinos típicos son "active LOW" (se activan con GND).
-# Si tu módulo es active-high, cambiar False por True.
-ACTIVE_HIGH = False
+# Este módulo Songle SRD-05VDC-SL-C resultó ser active-HIGH
+# (se activa con 3.3V en IN1/IN2, no con GND).
+ACTIVE_HIGH = True
 
 # Pausa entre encender bomba y abrir EV (presurizar línea)
 PRESSURIZE_DELAY = 0.5
