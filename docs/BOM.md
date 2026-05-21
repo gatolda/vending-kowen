@@ -44,7 +44,10 @@ Hardware preexistente que NO compramos (ya está instalado en cada máquina):
 | 16 | Tubo PVC 50mm | Corte 40cm + tapa con orificio | 1 | $3 | $3 | Guía para sensor ultrasónico en tanque |
 | 17 | Resistencias kit | 1kΩ, 4.7kΩ, 10kΩ, 15kΩ | kit | — | $3 | Pull-up/down y divisores de voltaje |
 | 18 | Terminales tornillo | Regletas 6 pos × 5 | 5 | $1 | $5 | Conexión AC a relés |
-| | **Subtotal por máquina** | | | | **~$160** | Sin JSN-SR04T (flotadores existentes), sin fuente 24V (interna), sin transductor presión (diferido). |
+| 18b | **Bornera de distribución 5V** | Regleta tornillo plástica 6-8 polos | 1 | $3 | $3 | Distribuir 5V a sensores y módulos |
+| 18c | **Bornera de distribución GND** | Regleta tornillo plástica 8-10 polos | 1 | $3 | $3 | Tierra común para todo |
+| 18d | Bornera 24VDC (opcional) | Regleta tornillo 4 polos | 1 | $2 | $2 | Distribuir 24V interno a MOSFETs |
+| | **Subtotal por máquina** | | | | **~$168** | + $8 USD en borneras de distribución (5V, GND, 24V) para cableado prolijo. |
 
 ## Adicionales fijos (una vez)
 
@@ -71,10 +74,10 @@ Hardware preexistente que NO compramos (ya está instalado en cada máquina):
 
 | Concepto | USD |
 |---|---|
-| Hardware módulos Pi (15 × $160) | $2,400 |
+| Hardware módulos Pi (15 × $168) | $2,520 |
 | Adicionales fijos | $145 |
 | Filtros repuesto | $570 |
-| **TOTAL** | **~$3,115 USD** |
+| **TOTAL** | **~$3,235 USD** |
 
 Confirmado en taller 2026-05-14:
 - Máquina ya trae fuente 24VDC interna (no se compra Mean Well)
