@@ -12,14 +12,14 @@ Uso:
     python3 test_all_channels.py 1 3 5        # CH1, CH3 y CH5
 
 Mapeo canal → carga (módulo principal):
-    CH1 → EV #3 llenado botellón     (GPIO 19, pin 35)
-    CH2 → EV #1 entrada bombas RO    (GPIO 27, pin 13)
-    CH3 → EV #2 salida RO            (GPIO 22, pin 15)
-    CH4 → Lámpara UV                 (GPIO 23, pin 16)
-    CH5 → Generador ozono            (GPIO 24, pin 18)
-    CH6 → reserva                    (GPIO  4, pin  7)
-    CH7 → reserva                    (GPIO  7, pin 26)
-    CH8 → reserva                    (GPIO  8, pin 24)
+    CH1 → EV #3 llenado botellón     (GPIO 16, pin 36)
+    CH2 → EV #1 entrada bombas RO    (GPIO 19, pin 35)
+    CH3 → EV #2 salida RO            (GPIO 27, pin 13)
+    CH4 → Lámpara UV                 (GPIO 22, pin 15)
+    CH5 → Generador ozono            (GPIO 23, pin 16)
+    CH6 → reserva                    (GPIO 24, pin 18)
+    CH7 → reserva                    (GPIO  4, pin  7)
+    CH8 → reserva                    (GPIO  7, pin 26)
 
 Módulo bombas (separado) — no incluido en este test:
     bomba despacho 220V              (GPIO 16, pin 36)
@@ -34,14 +34,14 @@ import signal
 
 # Mapeo canal → (GPIO, descripción)
 CHANNELS = {
-    1: (19, "EV #3 llenado botellón"),
-    2: (27, "EV #1 entrada bombas RO"),
-    3: (22, "EV #2 salida RO"),
-    4: (23, "Lámpara UV"),
-    5: (24, "Generador ozono"),
-    6: (4,  "Reserva 1"),
-    7: (7,  "Reserva 2"),
-    8: (8,  "Reserva 3"),
+    1: (16, "EV #3 llenado botellón"),
+    2: (19, "EV #1 entrada bombas RO"),
+    3: (27, "EV #2 salida RO"),
+    4: (22, "Lámpara UV"),
+    5: (23, "Generador ozono"),
+    6: (24, "Reserva 1"),
+    7: (4,  "Reserva 2"),
+    8: (7,  "Reserva 3"),
 }
 
 ACTIVE_HIGH = True
