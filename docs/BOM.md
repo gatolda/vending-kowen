@@ -28,9 +28,9 @@ Hardware preexistente que NO compramos (ya está instalado en cada máquina):
 | 3 | UPS HAT | UPS Lite 1S | 1 | $15 | $15 | Tolerancia a cortes de luz |
 | 4 | Fuente AC/DC | Mean Well IRM-05-5 (5V 3A) | 1 | $8 | $8 | Confiable industrial |
 | 5 | Módulo relés 8ch | Songle SRD-05VDC-SL-C **30A** | 1 | $12 | $12 | Para las **5 cargas AC**: 3 EV + UV + ozono. Reservas para futuro. NO comprar los baratos 10A |
-| 5b | MOSFET potencia DC | IRLZ44N (canal N, logic-level) | 2 | $1.50 | $3 | Para 1 carga DC (bombas RO en paralelo, 5A) + 1 reserva. La bomba de despacho es 220V AC, va por relé |
-| 5c | Diodos flyback | 1N5408 (3A 1000V) | 1 | $0.30 | $0.30 | Protección anti-EMF del driver de bombas RO |
-| 5d | Disipadores TO-220 | Aluminio pequeño | 1 | $0.50 | $0.50 | Para el MOSFET activo |
+| ~~5b~~ | ~~MOSFET potencia DC~~ | ~~IRLZ44N~~ | 0 | — | $0 | **NO requerido**: bombas RO se controlan cortando AC al transformador (Relé 7 del módulo Songle) |
+| ~~5c~~ | ~~Diodos flyback~~ | ~~1N5408~~ | 0 | — | $0 | **NO requerido** (sin MOSFETs) |
+| ~~5d~~ | ~~Disipadores TO-220~~ | — | 0 | — | $0 | **NO requerido** (sin MOSFETs) |
 | 6 | Optoacopladores | PC817 | 6 | $0.30 | $2 | Aislar billetero/monedero/caudalímetro/inhibits |
 | 7 | ADC I2C | ADS1115 16-bit 4 canales | 1 | $5 | $5 | Para sondas TDS y eventualmente presión |
 | 8 | Sondas TDS | TDS sensor analógico (Gravity) | 2 | $5 | $10 | Pre y post RO membrane |
@@ -47,7 +47,7 @@ Hardware preexistente que NO compramos (ya está instalado en cada máquina):
 | 18b | **Bornera de distribución 5V** | Regleta tornillo plástica 6-8 polos | 1 | $3 | $3 | Distribuir 5V a sensores y módulos |
 | 18c | **Bornera de distribución GND** | Regleta tornillo plástica 8-10 polos | 1 | $3 | $3 | Tierra común para todo |
 | 18d | Bornera 24VDC (opcional) | Regleta tornillo 4 polos | 1 | $2 | $2 | Distribuir 24V interno a MOSFETs |
-| | **Subtotal por máquina** | | | | **~$168** | + $8 USD en borneras de distribución (5V, GND, 24V) para cableado prolijo. |
+| | **Subtotal por máquina** | | | | **~$164** | Sin MOSFETs (bombas RO via relé al transformador). Con borneras 5V+GND. |
 
 ## Adicionales fijos (una vez)
 
@@ -74,10 +74,10 @@ Hardware preexistente que NO compramos (ya está instalado en cada máquina):
 
 | Concepto | USD |
 |---|---|
-| Hardware módulos Pi (15 × $168) | $2,520 |
+| Hardware módulos Pi (15 × $164) | $2,460 |
 | Adicionales fijos | $145 |
 | Filtros repuesto | $570 |
-| **TOTAL** | **~$3,235 USD** |
+| **TOTAL** | **~$3,175 USD** |
 
 Confirmado en taller 2026-05-14:
 - Máquina ya trae fuente 24VDC interna (no se compra Mean Well)

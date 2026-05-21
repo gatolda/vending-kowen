@@ -15,10 +15,9 @@ Referencia rápida para cableado de la Raspberry Pi 3 al hardware del piloto Kow
 - **EV #2 (salida RO / flush)** → Pin 15 (GPIO 22)
 - **Lámpara UV** → Pin 16 (GPIO 23)
 - **Generador ozono** → Pin 18 (GPIO 24)
+- **Transformador 24V (→ bombas RO)** → Pin 22 (GPIO 25)
 
-## Salidas — Cargas DC (vía MOSFET)
-
-- **2× Bombas RO 24VDC (paralelo, 1 driver)** → Pin 22 (GPIO 25)
+*Las bombas RO se controlan indirectamente cortando AC al transformador 24V (Relé 7). Sin MOSFET ni circuito DC adicional.*
 
 ## Entradas — Botones del panel
 
