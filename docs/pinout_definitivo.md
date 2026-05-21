@@ -7,17 +7,20 @@ Referencia rápida para cableado de la Raspberry Pi 3 al hardware del piloto Kow
 - **5V para módulo relé / sensores 5V** → Pin 2
 - **GND común** → Pin 6
 
-## Salidas — Cargas AC (vía módulo relé Songle 8ch)
+## Salidas — Cargas AC (módulo único Songle 8ch)
 
-- **EV #3 (llenado botellón)** → Pin 35 (GPIO 19) ✅ validado
-- **Bomba despacho 220V** → Pin 36 (GPIO 16) ✅ validado
-- **EV #1 (entrada bombas RO)** → Pin 13 (GPIO 27)
-- **EV #2 (salida RO / flush)** → Pin 15 (GPIO 22)
-- **Lámpara UV** → Pin 16 (GPIO 23)
-- **Generador ozono** → Pin 18 (GPIO 24)
-- **Transformador 24V (→ bombas RO)** → Pin 22 (GPIO 25)
+**Consolidado en un solo módulo de 8 canales (2026-05-21):**
 
-*Las bombas RO se controlan indirectamente cortando AC al transformador 24V (Relé 7). Sin MOSFET ni circuito DC adicional.*
+- **EV #3 (llenado botellón)** → Pin 36 (GPIO 16) ✅ CH1 validado
+- **Bomba despacho 220V** → Pin 35 (GPIO 19) ✅ CH2 validado
+- **EV #1 (entrada bombas RO)** → Pin 13 (GPIO 27) ✅ CH3 validado
+- **EV #2 (salida RO / flush)** → Pin 15 (GPIO 22) ✅ CH4 validado
+- **Lámpara UV** → Pin 16 (GPIO 23) ✅ CH5 validado
+- **Generador ozono** → Pin 18 (GPIO 24) ✅ CH6 validado
+- **Transformador 24V (→ bombas RO)** → Pin 7 (GPIO 4) — CH7 sin cablear todavía
+- **Reserva** → Pin 26 (GPIO 7) — CH8
+
+*Las bombas RO se controlan indirectamente cortando AC al transformador 24V (CH7). Sin MOSFET ni circuito DC adicional.*
 
 ## Entradas — Botones del panel
 
