@@ -74,7 +74,10 @@ def main():
             sensor = sensors[name]
             relay = relays[name]
 
-            if sensor.is_pressed:
+            # LÓGICA INVERTIDA: relé activo cuando sensor está SUELTO (no presionado)
+            # Esto refleja el estado opuesto del sensor físico para mejor lectura
+            # del estado lógico del sistema (ej. MAX activo = "no lleno", etc.)
+            if not sensor.is_pressed:
                 if not relay.is_active:
                     relay.on()
             else:
