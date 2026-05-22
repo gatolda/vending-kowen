@@ -27,11 +27,11 @@ Referencia rápida para cableado de la Raspberry Pi 3 al hardware del piloto Kow
 - **Botón EMPEZAR (verde)** → Pin 29 (GPIO 5)
 - **Botón APAGAR (rojo)** → Pin 31 (GPIO 6)
 
-## Entradas — Sensores de nivel del tanque (flotadores reed switch)
+## Entradas — Sensores digitales del sistema de agua
 
-- **Sensor nivel MAX** → Pin 32 (GPIO 12) — **control principal**: bombas RO ON cuando baja, OFF al llenarse
-- **Sensor nivel MIN** → Pin 33 (GPIO 13) — monitoreo: alerta "bombas no dan abasto"
-- **Sensor nivel OUT (vacío)** → Pin 12 (GPIO 18) — crítica: ALERTA + bloquear venta
+- **Flotador MAX** → Pin 32 (GPIO 12) — tanque lleno: control de bombas (ON cuando baja, OFF al llenarse)
+- **Flotador OUT (vacío)** → Pin 12 (GPIO 18) — tanque vacío total: ALERTA + bloquear venta
+- **Presostato agua de red** → Pin 33 (GPIO 13) — detecta corte de agua municipal: protege bombas de andar en seco
 
 ## Entradas — Caudalímetro JINGRUI JR-A168
 
