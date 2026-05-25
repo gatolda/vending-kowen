@@ -39,7 +39,7 @@ CHANNELS = {
     8: 7,
 }
 
-ACTIVE_HIGH = True
+ACTIVE_HIGH = False   # Módulo es ACTIVE-LOW (descubierto en test 2026-05-25)
 BOMBAS_TIME = 15.0
 PRESSURE_RELIEF = 1.0
 PRESSURE_DROP = 1.0
