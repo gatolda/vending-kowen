@@ -1,26 +1,9 @@
 #!/usr/bin/env python3
 """
 Abre/mantiene activo un relé del módulo principal manualmente.
-Útil para tareas de mantenimiento: lavado de filtros, pruebas individuales, etc.
-
-El relé queda activo hasta que presiones Ctrl+C.
 
 Uso:
-    python3 scripts/manual_relay.py <canal>
-
-Canales del módulo principal:
-    1 → EV #3 llenado botellón     (GPIO 16)
-    2 → Bomba despacho 220V        (GPIO 19)
-    3 → EV #1 entrada bombas RO    (GPIO 27)  ← lavado pre-filtros
-    4 → EV #2 salida RO / flush    (GPIO 22)
-    5 → Lámpara UV                 (GPIO 23)
-    6 → Generador ozono            (GPIO 24)
-    7 → Transformador 24V (RO)     (GPIO  4)
-    8 → Reserva                    (GPIO  7)
-
-Ejemplos:
-    python3 scripts/manual_relay.py 3      # abre EV #1 para lavar filtros
-    python3 scripts/manual_relay.py 5      # prende UV solo
+    python3 scripts/manual_relay.py <canal 1-8>
 
 Salir y desactivar: Ctrl+C
 """
@@ -45,31 +28,35 @@ def main():
         print(__doc__)
         sys.exit(1)
 
-    try:
-        ch = int(sys.argv[1])
-    except ValueError:
-        print(f"Error: '{sys.argv[1]}' no es un número válido")
-        sys.exit(1)
-
+    ch = int(sys.argv[1])
     if ch not in CHANNELS:
-        print(f"Error: canal {ch} no existe. Válidos: 1-8")
+        print(f"Canal {ch} inválido. Válidos: 1-8")
         sys.exit(1)
 
     gpio, desc = CHANNELS[ch]
 
-    # Crear el relé y activarlo
+    print(f"\n[DEBUG] Iniciando con GPIO={gpio}, CH={ch}, desc='{desc}'")
+    print(f"[DEBUG] Creando OutputDevice...")
     relay = OutputDevice(gpio, active_high=True, initial_value=False)
+    print(f"[DEBUG] Creado. value={relay.value}  is_active={relay.is_active}")
 
-    print(f"=== CH{ch} — {desc} (GPIO {gpio}) ===")
+    print(f"\n=== CH{ch} — {desc} (GPIO {gpio}) ===")
+    print(f"[DEBUG] Llamando relay.on()...")
     relay.on()
-    print(f"  Relé ACTIVO. Ctrl+C para desactivar y salir.\n")
+    print(f"[DEBUG] Después de .on(): value={relay.value}  is_active={relay.is_active}")
+    print(f"  → Si is_active=True pero NO clickea: problema hardware (cable IN suelto)")
+    print(f"  → Si is_active=False: bug software (no llegó a .on())")
+
+    print(f"\n  Relé ACTIVO. Ctrl+C para desactivar y salir.\n")
 
     try:
         start = time.time()
         while True:
             elapsed = int(time.time() - start)
             mins, secs = divmod(elapsed, 60)
-            print(f"\r  Tiempo activo: {mins:02d}:{secs:02d}", end="", flush=True)
+            # mostrar también el estado en cada tick (debug)
+            print(f"\r  Tiempo: {mins:02d}:{secs:02d}  value={relay.value}  active={relay.is_active}",
+                  end="", flush=True)
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n\n[!] Desactivando relé.")
