@@ -1,45 +1,68 @@
 #!/usr/bin/env python3
 """
-produce_water.py — Ciclo de producción de agua (PRODUCING)
-sin considerar sensores. El usuario actúa como sensor MAX.
+produce_water.py — Ciclo completo de producción: FLUSH → PRODUCCIÓN.
 
-Secuencia simplificada (CH7 controla EV #1 + Transformador):
-    t=0      EV #2 cerrada (modo flush, agua a drenaje)
-    t=0      CH7 ON → EV #1 abre + bombas RO arrancan simultáneamente
-    t=15s    EV #2 OPEN → fin flush, agua al tanque
-             ... producción en curso ...
-    [user]   Apretás ENTER cuando consideres el tanque lleno
-    t=stop   CH7 OFF → bombas paran + EV #1 cierra
-    t=+1s    EV #2 cerrada (estado final)
+Secuencia:
+    Fase FLUSH (limpia la membrana, agua al drenaje):
+        t=0.0s   CH4 (EV #2) → OPEN   (libera presión)
+        t=1.0s   CH7 (bombas) → ON
+        t=16.0s  CH4 (EV #2) → CLOSE  (fin flush)
+
+    Fase PRODUCCIÓN (agua al tanque):
+        Bombas CH7 siguen prendidas
+        Apretás ENTER cuando consideres tanque lleno (sos el sensor MAX)
+
+    Fase APAGADO seguro:
+        CH7 (bombas) → OFF
 
 Mapeo:
-    CH4 (GPIO 22) → EV #2 salida RO / flush
-    CH7 (GPIO  4) → EV #1 entrada + Transformador 24V (bombas RO)
+    CH4 (GPIO 22) → EV #2 salida / flush
+    CH7 (GPIO  4) → Bombas RO + EV #1 entrada
 
 Uso:
     python3 scripts/produce_water.py
 
-Para parar: apretá ENTER (simula MAX detectado).
-Para abortar de emergencia: Ctrl+C.
+Detener producción: ENTER (transición a apagado limpio)
+Emergencia:        Ctrl+C (apaga todo inmediato)
 """
 
-from gpiozero import OutputDevice
-import time
+import signal
 import sys
+import time
 import threading
+from gpiozero import OutputDevice
 
-# Configuración hardware
-EV2_GPIO = 22         # CH4 - EV #2 salida RO / flush
-PUMPS_GPIO = 4        # CH7 - EV #1 entrada + Transformador 24V (bombas)
-ACTIVE_HIGH = True
+# Canales sanos — crear todos los OutputDevices al inicio
+CHANNELS = {
+    1: 16,
+    2: 19,
+    # 3: DAÑADO
+    4: 22,    # EV #2 (flush/salida RO)
+    5: 23,
+    6: 24,
+    7: 4,     # Bombas RO + EV #1
+    8: 7,
+}
 
-# Tiempos
-FLUSH_TIME = 15.0     # segundos de flush al inicio (agua a drenaje)
-SHUTDOWN_DELAY = 1.0  # segundos entre apagar bombas y cerrar EV #2
+ACTIVE_HIGH = False   # Módulo es active-LOW
+FLUSH_TIME = 15.0     # segundos de flush
+PRESSURE_RELIEF = 1.0 # tiempo entre abrir EV y arrancar bombas
+
+devices = {}
+
+
+def cleanup(signum=None, frame=None):
+    print("\n\n[!] EMERGENCIA — Apagando todo inmediatamente.")
+    for d in devices.values():
+        try:
+            d.off()
+            d.close()
+        except Exception:
+            pass
+    sys.exit(0)
 
 
 def listen_for_enter(stop_flag):
-    """Thread que espera Enter del usuario."""
     try:
         input()
     except EOFError:
@@ -48,76 +71,79 @@ def listen_for_enter(stop_flag):
 
 
 def main():
-    # Inicializar relés (todos OFF inicialmente)
-    print("[Init] Configurando relés...")
-    ev2 = OutputDevice(EV2_GPIO, active_high=ACTIVE_HIGH, initial_value=False)
-    pumps = OutputDevice(PUMPS_GPIO, active_high=ACTIVE_HIGH, initial_value=False)
-    time.sleep(0.5)
+    signal.signal(signal.SIGINT, cleanup)
+    signal.signal(signal.SIGTERM, cleanup)
+
+    print("=== Producción de agua: FLUSH → PRODUCCIÓN ===\n")
+    print("Iniciando en 2 segundos... (Ctrl+C para cancelar)")
+    time.sleep(2)
+
+    # Crear OutputDevices para todos los canales sanos
+    print("\n[Init] Configurando 7 canales (todos OFF)...")
+    for ch, gpio in CHANNELS.items():
+        devices[ch] = OutputDevice(gpio, active_high=ACTIVE_HIGH, initial_value=False)
+        time.sleep(0.05)
+
+    ev2 = devices[4]
+    pumps = devices[7]
 
     stop_flag = threading.Event()
     enter_thread = threading.Thread(target=listen_for_enter, args=(stop_flag,), daemon=True)
 
     try:
-        print("\n=== Ciclo de producción de agua ===\n")
+        # ═══ Fase FLUSH ═══
+        print("\n━━━ Fase FLUSH ━━━\n")
 
-        # Fase 1: Confirmar EV #2 cerrada (flush mode)
-        print("t=0.0s   EV #2 cerrada (modo flush)")
-        ev2.off()
-        time.sleep(0.5)
+        print(f"t=0.0s   CH4 (EV #2) → OPEN   (libera presión)")
+        ev2.on()
+        time.sleep(PRESSURE_RELIEF)
 
-        # Fase 2: Activar bombas + EV #1 (CH7)
-        print("t=0.0s   CH7 ON → EV #1 OPEN + bombas RO arrancan")
+        print(f"t={PRESSURE_RELIEF:.1f}s   CH7 (bombas) → ON")
         pumps.on()
 
-        # Fase 3: Flush
-        print(f"\n  Modo flush activo. Esperando {FLUSH_TIME:.0f}s (agua al drenaje)...")
+        print(f"\n  Flush en curso. Esperando {FLUSH_TIME:.0f}s...\n")
         for i in range(int(FLUSH_TIME)):
             remaining = int(FLUSH_TIME) - i
             print(f"\r  Flush: {remaining:2d}s restantes", end="", flush=True)
             time.sleep(1.0)
         print()
 
-        # Fase 4: Apertura de EV #2 — producción al tanque
-        print(f"\nt=15s    EV #2 OPEN → fin flush, agua al tanque")
-        ev2.on()
+        # ═══ Fase PRODUCCIÓN ═══
+        print(f"\n━━━ Fase PRODUCCIÓN ━━━\n")
+        print(f"t={PRESSURE_RELIEF + FLUSH_TIME:.1f}s  CH4 (EV #2) → CLOSE  (fin flush)")
+        ev2.off()
+        print(f"         CH7 (bombas) sigue ON → agua al tanque\n")
 
-        # Fase 5: Producción continua hasta que el usuario apriete Enter
-        print(f"\n*** Producción en curso ***")
-        print(f"*** Apretá ENTER cuando consideres el tanque lleno (vos sos el sensor MAX) ***\n")
-
+        print("*** Producción en curso. Apretá ENTER cuando consideres tanque lleno. ***\n")
         enter_thread.start()
         start = time.time()
         while not stop_flag.is_set():
             elapsed = int(time.time() - start)
             mins, secs = divmod(elapsed, 60)
-            print(f"\r  Tiempo de producción al tanque: {mins:02d}:{secs:02d}",
-                  end="", flush=True)
+            print(f"\r  Producción: {mins:02d}:{secs:02d}", end="", flush=True)
             time.sleep(0.5)
         print()
 
-        # Fase 6: Detener producción (usuario detectó MAX)
-        print("\n=== Tanque lleno detectado (manual). Iniciando apagado seguro ===")
-
-        print(f"  CH7 OFF → bombas paran + EV #1 cierra")
+        # ═══ Fase APAGADO ═══
+        print(f"\n━━━ Apagado (tanque lleno detectado) ━━━\n")
+        print(f"  CH7 (bombas) → OFF")
         pumps.off()
-        time.sleep(SHUTDOWN_DELAY)
+        time.sleep(0.5)
 
-        print(f"  EV #2 cerrada")
+        print(f"  CH4 (EV #2) → confirmar OFF (ya estaba cerrada)")
         ev2.off()
 
-        print(f"\n=== Producción finalizada correctamente ===")
+        print(f"\n=== Ciclo completado ===")
 
     except KeyboardInterrupt:
-        print("\n\n[!] EMERGENCIA — Abortando todo.")
+        cleanup()
     finally:
-        try:
-            pumps.off()
-            ev2.off()
-            pumps.close()
-            ev2.close()
-            print("[Cleanup] Todos los relés desactivados.")
-        except Exception:
-            pass
+        for d in devices.values():
+            try:
+                d.off()
+                d.close()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
