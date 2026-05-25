@@ -27,7 +27,6 @@ Salir y desactivar: Ctrl+C
 
 from gpiozero import OutputDevice
 import time
-import signal
 import sys
 
 CHANNELS = {
@@ -40,17 +39,6 @@ CHANNELS = {
     7: (4,  "Transformador 24V (bombas RO)"),
     8: (7,  "Reserva"),
 }
-
-ACTIVE_HIGH = True
-
-device = None
-
-def cleanup(signum=None, frame=None):
-    print("\n[!] Cerrando relé.")
-    if device:
-        device.off()
-        device.close()
-    sys.exit(0)
 
 def main():
     if len(sys.argv) < 2:
@@ -69,21 +57,12 @@ def main():
 
     gpio, desc = CHANNELS[ch]
 
-    signal.signal(signal.SIGINT, cleanup)
-    signal.signal(signal.SIGTERM, cleanup)
+    # Crear el relé y activarlo
+    relay = OutputDevice(gpio, active_high=True, initial_value=False)
 
-    global device
-    device = OutputDevice(gpio, active_high=ACTIVE_HIGH, initial_value=False)
-
-    print(f"=== Activando CH{ch} ===")
-    print(f"  Carga: {desc}")
-    print(f"  GPIO:  {gpio}")
-    print(f"  Estado: ACTIVO (relé ON)")
-    print()
-    print("⚠️  Ctrl+C para desactivar y salir.")
-    print()
-
-    device.on()
+    print(f"=== CH{ch} — {desc} (GPIO {gpio}) ===")
+    relay.on()
+    print(f"  Relé ACTIVO. Ctrl+C para desactivar y salir.\n")
 
     try:
         start = time.time()
@@ -93,7 +72,11 @@ def main():
             print(f"\r  Tiempo activo: {mins:02d}:{secs:02d}", end="", flush=True)
             time.sleep(1)
     except KeyboardInterrupt:
-        cleanup()
+        print("\n\n[!] Desactivando relé.")
+    finally:
+        relay.off()
+        relay.close()
+        print("Cerrado.")
 
 if __name__ == "__main__":
     main()
