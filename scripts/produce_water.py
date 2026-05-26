@@ -48,6 +48,10 @@ ACTIVE_HIGH = False   # Módulo es active-LOW
 FLUSH_TIME = 15.0     # segundos de flush
 PRESSURE_RELIEF = 1.0 # tiempo entre abrir EV y arrancar bombas
 
+# SAFETY: timeout máximo para producción. Si SSH se cae o usuario olvida
+# apretar Enter, el ciclo se corta automático para no inundar / quemar bombas.
+MAX_PRODUCTION_TIME = 300.0  # 5 minutos (ajustar según tamaño del tanque)
+
 devices = {}
 
 
@@ -114,13 +118,21 @@ def main():
         ev2.off()
         print(f"         CH7 (bombas) sigue ON → agua al tanque\n")
 
-        print("*** Producción en curso. Apretá ENTER cuando consideres tanque lleno. ***\n")
+        print(f"*** Producción en curso. Apretá ENTER cuando consideres tanque lleno. ***")
+        print(f"*** Timeout de seguridad: {MAX_PRODUCTION_TIME/60:.1f} min (corta solo aunque te desconectes) ***\n")
         enter_thread.start()
         start = time.time()
+        timeout_triggered = False
         while not stop_flag.is_set():
-            elapsed = int(time.time() - start)
-            mins, secs = divmod(elapsed, 60)
-            print(f"\r  Producción: {mins:02d}:{secs:02d}", end="", flush=True)
+            elapsed = time.time() - start
+            if elapsed >= MAX_PRODUCTION_TIME:
+                timeout_triggered = True
+                print(f"\n\n⚠️  TIMEOUT de {MAX_PRODUCTION_TIME/60:.1f} min alcanzado. Apagando por seguridad.")
+                break
+            mins, secs = divmod(int(elapsed), 60)
+            max_mins, max_secs = divmod(int(MAX_PRODUCTION_TIME), 60)
+            print(f"\r  Producción: {mins:02d}:{secs:02d} / {max_mins:02d}:{max_secs:02d}",
+                  end="", flush=True)
             time.sleep(0.5)
         print()
 
