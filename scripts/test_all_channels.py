@@ -42,7 +42,7 @@ CHANNELS = {
     8: (7,  "Reserva"),
 }
 
-ACTIVE_HIGH = True
+ACTIVE_HIGH = False   # Módulo es active-LOW (descubierto 2026-05-25)
 HOLD_TIME = 2.0
 GAP_TIME = 0.5
 
