@@ -288,6 +288,28 @@ def op_stop():
     return jsonify({"status": "stopped"})
 
 
+@app.route("/api/relay/<int:ch>/toggle", methods=["POST"])
+def relay_toggle(ch):
+    """Activa/desactiva un relé manualmente. Solo si no hay operación en curso."""
+    if current_operation is not None:
+        return jsonify({"error": f"Operación en curso: {current_operation}"}), 409
+
+    if ch not in relays:
+        return jsonify({"error": f"Canal {ch} no existe o está dañado"}), 404
+
+    relay = relays[ch]
+    desc = RELAY_CHANNELS[ch][1]
+
+    if relay.is_active:
+        relay.off()
+        log_event(f"CH{ch} ({desc}) apagado manualmente", "info")
+        return jsonify({"channel": ch, "state": "off"})
+    else:
+        relay.on()
+        log_event(f"CH{ch} ({desc}) encendido manualmente", "info")
+        return jsonify({"channel": ch, "state": "on"})
+
+
 # ============================================
 # MAIN
 # ============================================

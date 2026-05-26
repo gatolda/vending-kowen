@@ -138,15 +138,48 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 6px 0;
+            padding: 8px 0;
             font-size: 14px;
             font-family: 'SF Mono', Menlo, monospace;
+            border-bottom: 1px solid #f3f4f6;
         }
+        .actuator-row:last-child { border-bottom: none; }
         .actuator-row.active { color: #047857; font-weight: 600; }
         .actuator-row.damaged {
             color: #b91c1c;
             text-decoration: line-through;
         }
+        .actuator-label {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .actuator-state {
+            min-width: 60px;
+            text-align: center;
+            font-size: 12px;
+            margin-right: 8px;
+        }
+        .toggle-btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            min-width: 70px;
+            font-family: inherit;
+        }
+        .toggle-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .toggle-on { background: #10b981; }
+        .toggle-on:hover { background: #059669; }
+        .toggle-off { background: #6b7280; }
+        .toggle-off:hover { background: #4b5563; }
         .log-row {
             display: flex;
             align-items: flex-start;
@@ -260,8 +293,11 @@
 
         <!-- Actuadores -->
         <section class="section">
-            <h2 class="section-title">🔧 Actuadores (estado en vivo)</h2>
+            <h2 class="section-title">🔧 Actuadores (control manual)</h2>
             <div id="actuators">cargando...</div>
+            <div style="font-size: 11px; color: #9ca3af; margin-top: 8px; text-align: center;">
+                ⚠️ Solo disponible cuando no hay operación en curso
+            </div>
         </section>
 
         <!-- Log -->
@@ -318,27 +354,18 @@
                 });
             }
 
-            // Actuadores
-            const actHtml = Object.keys(RELAY_DESC).map(ch => {
-                const relay = data.relays[ch];
-                if (!relay) return '';
-                const active = relay.active;
-                const cls = active ? 'actuator-row active' : 'actuator-row';
-                const icon = active ? '🟢 ON' : '⚪ OFF';
-                return `<div class="${cls}"><span>CH${ch} ${RELAY_DESC[ch]}</span><span>${icon}</span></div>`;
-            }).join('');
-            // Mostrar CH3 dañado
-            const ch3 = '<div class="actuator-row damaged"><span>CH3 (dañado)</span><span>❌</span></div>';
-            const order = '<div class="actuator-row active' + (data.relays[1]?.active ? '' : '') + '"></div>';
+            // Actuadores con botones de toggle
+            const opActive = !!data.system.operation;
+            const ch3 = '<div class="actuator-row damaged"><span class="actuator-label">CH3 (dañado)</span><span>❌</span></div>';
             document.getElementById('actuators').innerHTML = `
-                ${actuatorRow(1, data.relays[1])}
-                ${actuatorRow(2, data.relays[2])}
+                ${actuatorRow(1, data.relays[1], opActive)}
+                ${actuatorRow(2, data.relays[2], opActive)}
                 ${ch3}
-                ${actuatorRow(4, data.relays[4])}
-                ${actuatorRow(5, data.relays[5])}
-                ${actuatorRow(6, data.relays[6])}
-                ${actuatorRow(7, data.relays[7])}
-                ${actuatorRow(8, data.relays[8])}
+                ${actuatorRow(4, data.relays[4], opActive)}
+                ${actuatorRow(5, data.relays[5], opActive)}
+                ${actuatorRow(6, data.relays[6], opActive)}
+                ${actuatorRow(7, data.relays[7], opActive)}
+                ${actuatorRow(8, data.relays[8], opActive)}
             `;
 
             // Events
@@ -364,12 +391,33 @@
             document.getElementById('events').innerHTML = logHtml || '<div class="log-row"><span>Sin eventos aún</span></div>';
         }
 
-        function actuatorRow(ch, relay) {
+        function actuatorRow(ch, relay, operationActive) {
             if (!relay) return '';
             const active = relay.active;
             const cls = active ? 'actuator-row active' : 'actuator-row';
-            const icon = active ? '🟢 ON' : '⚪ OFF';
-            return `<div class="${cls}"><span>CH${ch} ${RELAY_DESC[ch]}</span><span>${icon}</span></div>`;
+            const stateText = active ? '🟢 ON' : '⚪ OFF';
+            const btnText = active ? 'APAGAR' : 'ENCENDER';
+            const btnClass = active ? 'toggle-btn toggle-off' : 'toggle-btn toggle-on';
+            const disabled = operationActive ? 'disabled' : '';
+            return `
+                <div class="${cls}">
+                    <span class="actuator-label">CH${ch} ${RELAY_DESC[ch]}</span>
+                    <span class="actuator-state">${stateText}</span>
+                    <button class="${btnClass}" onclick="toggleRelay(${ch})" ${disabled}>${btnText}</button>
+                </div>`;
+        }
+
+        async function toggleRelay(ch) {
+            try {
+                const r = await fetch(`/api/relay/${ch}/toggle`, {method: 'POST'});
+                if (!r.ok) {
+                    const err = await r.json();
+                    alert('Error: ' + (err.error || 'desconocido'));
+                }
+                fetchStatus();
+            } catch (e) {
+                alert('Error de red: ' + e.message);
+            }
         }
 
         async function doFill() {
