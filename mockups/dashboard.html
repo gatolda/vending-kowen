@@ -3,190 +3,376 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kowen Vending - Dashboard MOCKUP</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Kowen Vending - Dashboard</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        .pulse-green { animation: pulse-green 2s infinite; }
-        @keyframes pulse-green {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        header {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            padding: 14px 16px;
+        }
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot-green { background: #10b981; animation: pulse 2s infinite; }
+        .dot-gray { background: #d1d5db; }
+        .dot-red { background: #ef4444; }
+        .dot-yellow { background: #f59e0b; }
+        @keyframes pulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        /* Main */
+        main {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* Sections */
+        .section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        /* Sensor rows */
+        .sensor-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 15px;
+        }
+        .sensor-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .text-green { color: #047857; }
+        .text-gray { color: #6b7280; }
+        .text-red { color: #b91c1c; }
+
+        /* Operation card */
+        .op-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .op-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .op-title {
+            font-size: 17px;
+            font-weight: 600;
+        }
+        .op-icon {
+            font-size: 24px;
+        }
+        .op-desc {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+        .time-input {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .time-input input {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 6px 10px;
+            width: 70px;
+            text-align: center;
+            font-size: 15px;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn:active { transform: translateY(1px); }
+        .btn-blue { background: #2563eb; }
+        .btn-cyan { background: #0891b2; }
+        .btn-teal { background: #0d9488; }
+
+        /* Actuator rows */
+        .actuator-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+            font-family: 'SF Mono', Menlo, monospace;
+        }
+        .actuator-row.damaged {
+            color: #b91c1c;
+            text-decoration: line-through;
+        }
+
+        /* Log */
+        .log-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 4px 0;
+            font-size: 13px;
+            font-family: 'SF Mono', Menlo, monospace;
+        }
+        .log-time {
+            color: #9ca3af;
+            min-width: 44px;
+        }
+        .log-icon-ok { color: #10b981; }
+        .log-icon-warn { color: #f59e0b; }
+        .log-icon-err { color: #ef4444; }
+
+        /* Stop button sticky */
+        .stop-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px;
+            background: rgba(17, 24, 39, 0.95);
+            backdrop-filter: blur(8px);
+            z-index: 20;
         }
         .stop-btn {
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            display: block;
+            padding: 16px;
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 17px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
             box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
         }
         .stop-btn:active {
             transform: translateY(1px);
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
         }
     </style>
 </head>
-<body class="bg-gray-100 pb-24">
+<body>
 
-    <!-- Header sticky -->
-    <header class="bg-white shadow-sm sticky top-0 z-10 px-4 py-3">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl">🚰</span>
-                <h1 class="text-xl font-bold text-gray-800">Kowen Vending</h1>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <span>🚰</span>
+                <span>Kowen Vending</span>
             </div>
-            <div class="flex items-center gap-2 text-sm">
-                <span class="inline-block w-2 h-2 bg-green-500 rounded-full pulse-green"></span>
-                <span class="text-gray-600">OK · 4h 23m</span>
+            <div class="status">
+                <span class="dot dot-green"></span>
+                <span>OK · 4h 23m</span>
             </div>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto p-4 space-y-4">
+    <main>
 
         <!-- Estado del tanque -->
-        <section class="bg-white rounded-xl shadow-sm p-4">
-            <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">📊 Estado del tanque</h2>
-            <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-700">Flotador MAX (lleno)</span>
-                    <span class="flex items-center gap-2">
-                        <span class="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
-                        <span class="text-sm font-medium text-green-700">Activo</span>
-                    </span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-700">Flotador OUT (vacío)</span>
-                    <span class="flex items-center gap-2">
-                        <span class="inline-block w-3 h-3 bg-gray-300 rounded-full"></span>
-                        <span class="text-sm font-medium text-gray-500">Inactivo</span>
-                    </span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-700">Presión red municipal</span>
-                    <span class="flex items-center gap-2">
-                        <span class="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
-                        <span class="text-sm font-medium text-green-700">OK</span>
-                    </span>
-                </div>
+        <section class="section">
+            <h2 class="section-title">📊 Estado del tanque</h2>
+            <div class="sensor-row">
+                <span>Flotador MAX (lleno)</span>
+                <span class="sensor-status text-green">
+                    <span class="dot dot-green"></span>
+                    Activo
+                </span>
+            </div>
+            <div class="sensor-row">
+                <span>Flotador OUT (vacío)</span>
+                <span class="sensor-status text-gray">
+                    <span class="dot dot-gray"></span>
+                    Inactivo
+                </span>
+            </div>
+            <div class="sensor-row">
+                <span>Presión red municipal</span>
+                <span class="sensor-status text-green">
+                    <span class="dot dot-green"></span>
+                    OK
+                </span>
             </div>
         </section>
 
         <!-- Operaciones -->
-        <section class="space-y-3">
-            <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide px-2">🎬 Operaciones</h2>
+        <h2 class="section-title" style="padding: 0 8px; margin-bottom: 12px;">🎬 Operaciones</h2>
 
-            <!-- Llenar botellón -->
-            <div class="bg-white rounded-xl shadow-sm p-4">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="text-2xl">💧</span>
-                    <h3 class="text-lg font-semibold text-gray-800">Llenar botellón</h3>
-                </div>
-                <div class="flex items-center gap-3 mb-3">
-                    <label class="text-sm text-gray-600">Tiempo:</label>
-                    <input type="number" value="5" min="1" max="60"
-                        class="border border-gray-300 rounded-lg px-3 py-1 w-20 text-center">
-                    <span class="text-sm text-gray-600">segundos</span>
-                </div>
-                <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition">
-                    INICIAR LLENADO
-                </button>
+        <!-- Llenar botellón -->
+        <div class="op-card">
+            <div class="op-header">
+                <span class="op-icon">💧</span>
+                <span class="op-title">Llenar botellón</span>
             </div>
+            <div class="time-input">
+                <label>Tiempo:</label>
+                <input type="number" value="5" min="1" max="60">
+                <span>segundos</span>
+            </div>
+            <button class="btn btn-blue">INICIAR LLENADO</button>
+        </div>
 
-            <!-- Flush -->
-            <div class="bg-white rounded-xl shadow-sm p-4">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="text-2xl">🔄</span>
-                    <h3 class="text-lg font-semibold text-gray-800">Flush sistema</h3>
-                </div>
-                <p class="text-sm text-gray-500 mb-3">Lava la membrana RO (15s + 1s + 1s)</p>
-                <button class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-lg transition">
-                    INICIAR FLUSH
-                </button>
+        <!-- Flush -->
+        <div class="op-card">
+            <div class="op-header">
+                <span class="op-icon">🔄</span>
+                <span class="op-title">Flush sistema</span>
             </div>
+            <div class="op-desc">Lava la membrana RO (15s + 1s + 1s)</div>
+            <button class="btn btn-cyan">INICIAR FLUSH</button>
+        </div>
 
-            <!-- Producir agua -->
-            <div class="bg-white rounded-xl shadow-sm p-4">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="text-2xl">⚗️</span>
-                    <h3 class="text-lg font-semibold text-gray-800">Producir agua</h3>
-                </div>
-                <p class="text-sm text-gray-500 mb-3">Llenar tanque (flush + producción)</p>
-                <button class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition">
-                    INICIAR PRODUCCIÓN
-                </button>
+        <!-- Producir agua -->
+        <div class="op-card">
+            <div class="op-header">
+                <span class="op-icon">⚗️</span>
+                <span class="op-title">Producir agua</span>
             </div>
-        </section>
+            <div class="op-desc">Llenar tanque (flush + producción)</div>
+            <button class="btn btn-teal">INICIAR PRODUCCIÓN</button>
+        </div>
 
         <!-- Actuadores -->
-        <section class="bg-white rounded-xl shadow-sm p-4">
-            <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">🔧 Actuadores</h2>
-            <div class="space-y-2 text-sm">
-                <div class="flex items-center justify-between py-1">
-                    <span class="text-gray-700">CH1 EV #3 llenado</span>
-                    <span class="text-gray-500">⚪ OFF</span>
-                </div>
-                <div class="flex items-center justify-between py-1">
-                    <span class="text-gray-700">CH2 Bomba despacho</span>
-                    <span class="text-gray-500">⚪ OFF</span>
-                </div>
-                <div class="flex items-center justify-between py-1">
-                    <span class="text-red-400 line-through">CH3 (dañado)</span>
-                    <span class="text-red-400">❌</span>
-                </div>
-                <div class="flex items-center justify-between py-1">
-                    <span class="text-gray-700">CH4 EV #2 salida</span>
-                    <span class="text-gray-500">⚪ OFF</span>
-                </div>
-                <div class="flex items-center justify-between py-1">
-                    <span class="text-gray-700">CH5 UV</span>
-                    <span class="text-gray-500">⚪ OFF</span>
-                </div>
-                <div class="flex items-center justify-between py-1">
-                    <span class="text-gray-700">CH6 Ozono</span>
-                    <span class="text-gray-500">⚪ OFF</span>
-                </div>
-                <div class="flex items-center justify-between py-1">
-                    <span class="text-gray-700">CH7 EV #1 entrada</span>
-                    <span class="text-gray-500">⚪ OFF</span>
-                </div>
-                <div class="flex items-center justify-between py-1">
-                    <span class="text-gray-700">CH8 Reserva</span>
-                    <span class="text-gray-500">⚪ OFF</span>
-                </div>
+        <section class="section">
+            <h2 class="section-title">🔧 Actuadores</h2>
+            <div class="actuator-row">
+                <span>CH1 EV #3 llenado</span>
+                <span class="text-gray">⚪ OFF</span>
+            </div>
+            <div class="actuator-row">
+                <span>CH2 Bomba despacho</span>
+                <span class="text-gray">⚪ OFF</span>
+            </div>
+            <div class="actuator-row damaged">
+                <span>CH3 (dañado)</span>
+                <span>❌</span>
+            </div>
+            <div class="actuator-row">
+                <span>CH4 EV #2 salida</span>
+                <span class="text-gray">⚪ OFF</span>
+            </div>
+            <div class="actuator-row">
+                <span>CH5 UV</span>
+                <span class="text-gray">⚪ OFF</span>
+            </div>
+            <div class="actuator-row">
+                <span>CH6 Ozono</span>
+                <span class="text-gray">⚪ OFF</span>
+            </div>
+            <div class="actuator-row">
+                <span>CH7 EV #1 entrada</span>
+                <span class="text-gray">⚪ OFF</span>
+            </div>
+            <div class="actuator-row">
+                <span>CH8 Reserva</span>
+                <span class="text-gray">⚪ OFF</span>
             </div>
         </section>
 
         <!-- Log -->
-        <section class="bg-white rounded-xl shadow-sm p-4">
-            <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">📋 Eventos recientes</h2>
-            <div class="space-y-2 text-sm font-mono">
-                <div class="flex items-start gap-3">
-                    <span class="text-gray-400 w-12">14:23</span>
-                    <span class="text-green-600">✓</span>
-                    <span class="text-gray-700">Llenado completado (5s)</span>
-                </div>
-                <div class="flex items-start gap-3">
-                    <span class="text-gray-400 w-12">14:18</span>
-                    <span class="text-green-600">✓</span>
-                    <span class="text-gray-700">Flush completado</span>
-                </div>
-                <div class="flex items-start gap-3">
-                    <span class="text-gray-400 w-12">14:15</span>
-                    <span class="text-yellow-600">⚠</span>
-                    <span class="text-gray-700">Bombas RO iniciadas</span>
-                </div>
-                <div class="flex items-start gap-3">
-                    <span class="text-gray-400 w-12">14:02</span>
-                    <span class="text-green-600">✓</span>
-                    <span class="text-gray-700">Sistema iniciado</span>
-                </div>
+        <section class="section">
+            <h2 class="section-title">📋 Eventos recientes</h2>
+            <div class="log-row">
+                <span class="log-time">14:23</span>
+                <span class="log-icon-ok">✓</span>
+                <span>Llenado completado (5s)</span>
+            </div>
+            <div class="log-row">
+                <span class="log-time">14:18</span>
+                <span class="log-icon-ok">✓</span>
+                <span>Flush completado</span>
+            </div>
+            <div class="log-row">
+                <span class="log-time">14:15</span>
+                <span class="log-icon-warn">⚠</span>
+                <span>Bombas RO iniciadas</span>
+            </div>
+            <div class="log-row">
+                <span class="log-time">14:02</span>
+                <span class="log-icon-ok">✓</span>
+                <span>Sistema iniciado</span>
             </div>
         </section>
 
     </main>
 
-    <!-- Stop emergencia sticky bottom -->
-    <div class="fixed bottom-0 left-0 right-0 p-4 bg-gray-900/95 backdrop-blur z-20">
-        <button class="stop-btn w-full max-w-md mx-auto block text-white font-bold text-lg py-4 rounded-xl">
-            🛑 STOP TODO (emergencia)
-        </button>
+    <!-- Stop button sticky bottom -->
+    <div class="stop-container">
+        <button class="stop-btn">🛑 STOP TODO (emergencia)</button>
     </div>
 
 </body>
