@@ -28,15 +28,16 @@ app = Flask(__name__)
 # ============================================
 
 # Canales del módulo principal (active-LOW)
+# Mapeo actualizado 2026-05-27
 RELAY_CHANNELS = {
-    1: (16, "EV #3 llenado botellón"),
-    2: (19, "Bomba despacho 220V"),
+    1: (16, "Luz publicidad frontal"),
+    2: (19, "Generador ozono"),
     # 3: DAÑADO
     4: (22, "EV #2 salida RO"),
-    5: (23, "Lámpara UV"),
-    6: (24, "Generador ozono"),
-    7: (4,  "EV #1 entrada bombas RO"),
-    8: (7,  "Reserva"),
+    5: (23, "Bomba despacho 220V"),
+    6: (24, "EV #3 llenado botellón"),
+    7: (4,  "EV #1 entrada + Bombas RO"),
+    8: (7,  "Reserva (UV pendiente?)"),
 }
 
 ACTIVE_HIGH = False  # módulo es active-LOW
@@ -117,24 +118,18 @@ def run_fill_bottle(seconds):
     log_event(f"Llenado iniciado ({seconds}s)", "ok")
 
     try:
-        # UV ON
+        # NOTA: UV pendiente de asignación. Cuando se sepa el canal, agregar aquí.
+        # Bomba despacho ON (CH5)
         relays[5].on()
-        if stop_event.wait(UV_LEAD): return
-
-        # Bomba despacho ON
-        relays[2].on()
         if stop_event.wait(PUMP_LEAD): return
 
-        # EV #3 OPEN
-        relays[1].on()
+        # EV #3 OPEN (CH6)
+        relays[6].on()
         if stop_event.wait(seconds): return
 
-        # Cierre seguro
-        relays[1].off()
+        # Cierre seguro (orden inverso)
+        relays[6].off()
         if stop_event.wait(EV_CLOSE_FIRST): return
-
-        relays[2].off()
-        if stop_event.wait(PUMP_OFF_DELAY): return
 
         relays[5].off()
 
