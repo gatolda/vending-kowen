@@ -28,24 +28,24 @@ app = Flask(__name__)
 # ============================================
 
 # Canales — formato: (GPIO, descripción, módulo)
-# Módulo "main" = módulo 8ch principal
+# Módulo "main" = módulo 8ch principal (reemplazado 2026-05-27, CH3 funciona)
 # Módulo "pump" = módulo 2ch nuevo (controla contactores)
 # Mapeo actualizado 2026-05-27
 RELAY_CHANNELS = {
     # ── Módulo principal 8ch ──
     1:  (16, "Luz publicidad frontal", "main"),
     2:  (19, "Generador ozono", "main"),
-    # 3: DAÑADO
-    4:  (22, "EV #2 salida RO", "main"),
-    5:  (23, "Libre (UV pendiente)", "main"),
-    6:  (24, "EV #3 llenado botellón", "main"),
-    7:  (4,  "EV #1 entrada RO", "main"),
-    8:  (7,  "Reserva", "main"),
+    3:  (27, "EV entrada bombas RO", "main"),
+    4:  (22, "EV llenado botellón", "main"),
+    5:  (23, "EV flush salida", "main"),
+    6:  (24, "Libre", "main"),
+    7:  (4,  "Libre", "main"),
+    8:  (7,  "Libre", "main"),
     # ── Módulo 2ch nuevo (drives contactores) ──
-    # CH9  → pin físico 29 (GPIO 5)
-    # CH10 → pin físico 31 (GPIO 6)
-    9:  (5, "Bomba despacho (contactor)", "pump"),
-    10: (6, "Bombas RO (contactor)", "pump"),
+    # CH9  → pin físico 29 (GPIO 5) — Bomba ? (identificar desde dashboard)
+    # CH10 → pin físico 31 (GPIO 6) — Bomba ? (identificar desde dashboard)
+    9:  (5, "Bomba A (pin 29)", "pump"),
+    10: (6, "Bomba B (pin 31)", "pump"),
 }
 
 ACTIVE_HIGH = False  # módulo es active-LOW
@@ -126,17 +126,16 @@ def run_fill_bottle(seconds):
     log_event(f"Llenado iniciado ({seconds}s)", "ok")
 
     try:
-        # NOTA: UV pendiente de asignación
-        # Bomba despacho via contactor (CH9 del módulo 2ch)
+        # Bomba de llenado via contactor (CH9 del módulo 2ch — asumido)
         relays[9].on()
         if stop_event.wait(PUMP_LEAD): return
 
-        # EV #3 llenado (CH6 módulo principal)
-        relays[6].on()
+        # EV llenado botellón (CH4 módulo principal)
+        relays[4].on()
         if stop_event.wait(seconds): return
 
         # Cierre seguro (orden inverso)
-        relays[6].off()
+        relays[4].off()
         if stop_event.wait(EV_CLOSE_FIRST): return
 
         relays[9].off()
@@ -156,15 +155,15 @@ def run_flush():
     log_event("Flush iniciado", "ok")
 
     try:
-        # EV #2 abre (libera presión)
-        relays[4].on()
+        # EV flush salida abre (CH5, libera presión)
+        relays[5].on()
         if stop_event.wait(PRESSURE_RELIEF): return
 
-        # EV #1 entrada abre (CH7)
-        relays[7].on()
+        # EV entrada bombas RO abre (CH3)
+        relays[3].on()
         if stop_event.wait(0.5): return
 
-        # Bombas RO ON via contactor (CH10 del módulo 2ch)
+        # Bombas RO ON via contactor (CH10 del módulo 2ch — asumido)
         relays[10].on()
         if stop_event.wait(FLUSH_TIME): return
 
@@ -172,12 +171,12 @@ def run_flush():
         relays[10].off()
         if stop_event.wait(PUMP_OFF_DELAY): return
 
-        # Cerrar EV #1
-        relays[7].off()
+        # Cerrar EV entrada RO
+        relays[3].off()
         if stop_event.wait(0.3): return
 
-        # Cerrar EV #2
-        relays[4].off()
+        # Cerrar EV flush salida
+        relays[5].off()
 
         log_event("Flush completado", "ok")
 
@@ -194,19 +193,19 @@ def run_produce_water():
     log_event("Producción iniciada (timeout 5min)", "ok")
 
     try:
-        # Fase flush: EV #2 abre, EV #1 abre, bombas arrancan
-        relays[4].on()  # EV #2 abre (libera presión inicial)
+        # Fase flush: EV salida abre, EV entrada abre, bombas arrancan
+        relays[5].on()  # EV flush salida abre (libera presión inicial)
         if stop_event.wait(PRESSURE_RELIEF): return
 
-        relays[7].on()  # EV #1 entrada abre
+        relays[3].on()  # EV entrada bombas RO abre
         if stop_event.wait(0.5): return
 
         relays[10].on()  # Bombas RO ON via contactor
         log_event("Bombas RO encendidas (modo flush)", "info")
         if stop_event.wait(FLUSH_TIME): return
 
-        # Fase producción: cerrar EV #2 (agua va al tanque), bombas siguen
-        relays[4].off()
+        # Fase producción: cerrar EV flush salida (agua va al tanque), bombas siguen
+        relays[5].off()
         log_event("Fase producción activa (agua al tanque)", "info")
 
         # Esperar stop o timeout
@@ -218,7 +217,7 @@ def run_produce_water():
         # Apagar todo en orden seguro
         relays[10].off()  # Bombas primero
         time.sleep(0.5)
-        relays[7].off()   # EV #1 cierra
+        relays[3].off()   # EV entrada cierra
 
     except Exception as e:
         log_event(f"Error en producción: {e}", "err")
