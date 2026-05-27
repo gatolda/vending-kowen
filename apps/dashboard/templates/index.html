@@ -328,8 +328,8 @@
             6:  "Libre",
             7:  "Libre",
             8:  "Libre",
-            9:  "Bomba A (pin 29)",
-            10: "Bomba B (pin 31)",
+            9:  "Bomba de llenado",
+            10: "Bombas RO",
         };
 
         async function fetchStatus() {
@@ -365,13 +365,12 @@
 
             // Actuadores con botones de toggle
             const opActive = !!data.system.operation;
-            const ch3 = '<div class="actuator-row damaged"><span class="actuator-label">CH3 (dañado)</span><span>❌</span></div>';
 
-            // Módulo principal (1-8)
+            // Módulo principal (1-8) — CH3 ya funciona tras reemplazo del módulo
             document.getElementById('actuators-main').innerHTML = `
                 ${actuatorRow(1, data.relays[1], opActive)}
                 ${actuatorRow(2, data.relays[2], opActive)}
-                ${ch3}
+                ${actuatorRow(3, data.relays[3], opActive)}
                 ${actuatorRow(4, data.relays[4], opActive)}
                 ${actuatorRow(5, data.relays[5], opActive)}
                 ${actuatorRow(6, data.relays[6], opActive)}

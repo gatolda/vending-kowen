@@ -42,10 +42,10 @@ RELAY_CHANNELS = {
     7:  (4,  "Libre", "main"),
     8:  (7,  "Libre", "main"),
     # ── Módulo 2ch nuevo (drives contactores) ──
-    # CH9  → pin físico 29 (GPIO 5) — Bomba ? (identificar desde dashboard)
-    # CH10 → pin físico 31 (GPIO 6) — Bomba ? (identificar desde dashboard)
-    9:  (5, "Bomba A (pin 29)", "pump"),
-    10: (6, "Bomba B (pin 31)", "pump"),
+    # CH9  → pin físico 29 (GPIO 5) — IN1 del módulo = Bomba de llenado
+    # CH10 → pin físico 31 (GPIO 6) — IN2 del módulo = Bombas RO
+    9:  (5, "Bomba de llenado (contactor)", "pump"),
+    10: (6, "Bombas RO (contactor)", "pump"),
 }
 
 ACTIVE_HIGH = False  # módulo es active-LOW
