@@ -291,10 +291,16 @@
             <button class="btn btn-teal" id="btn-produce" onclick="doProduce()">INICIAR PRODUCCIÓN</button>
         </div>
 
-        <!-- Actuadores -->
+        <!-- Actuadores módulo principal -->
         <section class="section">
-            <h2 class="section-title">🔧 Actuadores (control manual)</h2>
-            <div id="actuators">cargando...</div>
+            <h2 class="section-title">🔧 Módulo principal 8ch</h2>
+            <div id="actuators-main">cargando...</div>
+        </section>
+
+        <!-- Actuadores módulo bombas (2ch + contactores) -->
+        <section class="section">
+            <h2 class="section-title">⚡ Módulo bombas (contactores)</h2>
+            <div id="actuators-pump">cargando...</div>
             <div style="font-size: 11px; color: #9ca3af; margin-top: 8px; text-align: center;">
                 ⚠️ Solo disponible cuando no hay operación en curso
             </div>
@@ -314,13 +320,15 @@
 
     <script>
         const RELAY_DESC = {
-            1: "Luz publicidad",
-            2: "Ozono",
-            4: "EV #2 salida",
-            5: "Bomba despacho",
-            6: "EV #3 llenado",
-            7: "EV #1 + Bombas RO",
-            8: "Reserva (UV?)",
+            1:  "Luz publicidad",
+            2:  "Ozono",
+            4:  "EV #2 salida",
+            5:  "Libre (UV?)",
+            6:  "EV #3 llenado",
+            7:  "EV #1 entrada",
+            8:  "Reserva",
+            9:  "Bomba despacho",
+            10: "Bombas RO",
         };
 
         async function fetchStatus() {
@@ -357,7 +365,9 @@
             // Actuadores con botones de toggle
             const opActive = !!data.system.operation;
             const ch3 = '<div class="actuator-row damaged"><span class="actuator-label">CH3 (dañado)</span><span>❌</span></div>';
-            document.getElementById('actuators').innerHTML = `
+
+            // Módulo principal (1-8)
+            document.getElementById('actuators-main').innerHTML = `
                 ${actuatorRow(1, data.relays[1], opActive)}
                 ${actuatorRow(2, data.relays[2], opActive)}
                 ${ch3}
@@ -366,6 +376,12 @@
                 ${actuatorRow(6, data.relays[6], opActive)}
                 ${actuatorRow(7, data.relays[7], opActive)}
                 ${actuatorRow(8, data.relays[8], opActive)}
+            `;
+
+            // Módulo bombas (2ch nuevo, channels 9-10)
+            document.getElementById('actuators-pump').innerHTML = `
+                ${actuatorRow(9, data.relays[9], opActive)}
+                ${actuatorRow(10, data.relays[10], opActive)}
             `;
 
             // Events
