@@ -104,6 +104,7 @@ events = []                    # log de eventos
 current_operation = None       # nombre de la operación en curso
 operation_thread = None        # thread de la operación actual
 stop_event = threading.Event() # señal para abortar
+auto_enabled = False           # modo automático (autollenado por sensores)
 
 START_TIME = datetime.now()
 
@@ -129,6 +130,14 @@ def init_sensors():
         except Exception as e:
             sensors[name] = None
             log_event(f"Sensor {name} (GPIO {gpio}) no inicializó: {e}", "warn")
+
+
+def sensor_active(name):
+    """True si el sensor está 'activo' (agua presente / presión OK), False si no, None si no hay lectura."""
+    dev = sensors.get(name)
+    if dev is None:
+        return None
+    return dev.is_pressed == SENSORS[name]["active_when_pressed"]
 
 
 def log_event(message, level="info"):
@@ -275,6 +284,88 @@ def run_produce_water():
 
 
 # ============================================
+# MODO AUTOMÁTICO (autollenado por sensores)
+# ============================================
+
+def run_auto_production():
+    """Producción para autollenado: corre hasta MÁXIMO lleno, timeout, o pérdida de presión.
+    Si NO llega al máximo (timeout/sin presión), desactiva el modo auto para no ciclar en seco."""
+    global current_operation, auto_enabled
+    current_operation = "Autollenado (producción)"
+    log_event("Autollenado: producción iniciada", "ok")
+    reached_max = False
+
+    try:
+        # Fase flush inicial
+        relays[5].on()  # EV flush salida abre (libera presión)
+        if stop_event.wait(PRESSURE_RELIEF): return
+        relays[3].on()  # EV entrada RO abre
+        if stop_event.wait(0.5): return
+        relays[10].on()  # Bombas RO ON
+        log_event("Autollenado: bombas RO ON (flush)", "info")
+        if stop_event.wait(FLUSH_TIME): return
+
+        # Fase producción: cerrar EV salida (agua al tanque)
+        relays[5].off()
+        log_event("Autollenado: producción al tanque", "info")
+
+        # Monitorear hasta máximo / timeout / sin presión / stop
+        start = time.time()
+        while time.time() - start < MAX_PRODUCTION_TIME:
+            if stop_event.wait(0.5):
+                return
+            if sensor_active("MAX"):
+                reached_max = True
+                log_event("Autollenado: tanque LLENO, parando", "ok")
+                break
+            if sensor_active("PRESOSTATO") is False:
+                log_event("Autollenado: SIN PRESIÓN de red, abortando", "warn")
+                break
+        else:
+            log_event("Autollenado: timeout sin llegar a máximo", "warn")
+
+        # Apagado seguro
+        relays[10].off()
+        time.sleep(0.5)
+        relays[3].off()
+
+    except Exception as e:
+        log_event(f"Error en autollenado: {e}", "err")
+    finally:
+        all_relays_off()
+        current_operation = None
+        if not reached_max:
+            auto_enabled = False
+            log_event("Modo auto DESACTIVADO (producción no completó el llenado)", "warn")
+
+
+def auto_loop():
+    """Loop de control del modo automático. Corre siempre en background;
+    sólo actúa cuando auto_enabled está activo y no hay otra operación en curso."""
+    last_no_pressure_log = 0.0
+    while True:
+        time.sleep(2)
+        if not auto_enabled or current_operation is not None:
+            continue
+
+        min_water = sensor_active("MIN")
+        if min_water is not False:
+            continue  # hay agua sobre el mínimo (o sin lectura) → nada que hacer
+
+        # Tanque por debajo del mínimo → querer producir
+        if sensor_active("PRESOSTATO") is False:
+            now = time.time()
+            if now - last_no_pressure_log > 30:
+                log_event("Autollenado en espera: tanque bajo pero sin presión de red", "warn")
+                last_no_pressure_log = now
+            continue
+
+        # Condiciones OK → arrancar ciclo de producción
+        stop_event.clear()
+        run_auto_production()
+
+
+# ============================================
 # ENDPOINTS
 # ============================================
 
@@ -289,6 +380,7 @@ def status():
         "system": {
             "uptime": get_uptime(),
             "operation": current_operation,
+            "auto_enabled": auto_enabled,
         },
         "relays": {
             ch: {
@@ -358,11 +450,25 @@ def op_produce():
 
 @app.route("/api/stop", methods=["POST"])
 def op_stop():
+    global auto_enabled
     log_event("STOP solicitado", "warn")
+    auto_enabled = False  # emergencia corta también el modo automático
     stop_event.set()
     all_relays_off()
     log_event("Todos los relés apagados", "ok")
     return jsonify({"status": "stopped"})
+
+
+@app.route("/api/auto/toggle", methods=["POST"])
+def auto_toggle():
+    global auto_enabled
+    auto_enabled = not auto_enabled
+    if auto_enabled:
+        log_event("Modo automático ACTIVADO", "ok")
+    else:
+        log_event("Modo automático DESACTIVADO", "warn")
+        stop_event.set()  # detiene producción auto en curso si la hay
+    return jsonify({"auto_enabled": auto_enabled})
 
 
 @app.route("/api/relay/<int:ch>/toggle", methods=["POST"])
@@ -394,6 +500,7 @@ def relay_toggle(ch):
 
 if __name__ == "__main__":
     init_gpio()
+    threading.Thread(target=auto_loop, daemon=True).start()
     try:
         app.run(host="0.0.0.0", port=8000, debug=False, threaded=True)
     finally:

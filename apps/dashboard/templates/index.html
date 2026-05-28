@@ -253,6 +253,21 @@
         .sensor-idle { color: #6b7280; }
         .sensor-alert{ color: #b91c1c; }
         .sensor-na   { color: #9ca3af; font-style: italic; font-weight: 400; }
+        .auto-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .auto-status { font-weight: 600; font-size: 15px; }
+        .auto-on  { color: #047857; }
+        .auto-off { color: #6b7280; }
+        .auto-row .btn { width: auto; padding: 10px 18px; }
+        .btn-amber { background: #d97706; }
+        .auto-card-active {
+            border: 2px solid #10b981;
+            box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+        }
     </style>
 </head>
 <body>
@@ -281,6 +296,19 @@
         <section class="section">
             <h2 class="section-title">📊 Estado del tanque</h2>
             <div id="sensors">cargando...</div>
+        </section>
+
+        <!-- Modo automático -->
+        <section class="section" id="auto-card">
+            <h2 class="section-title">🤖 Modo automático</h2>
+            <div class="auto-row">
+                <span class="auto-status auto-off" id="auto-status">⚪ Desactivado</span>
+                <button class="btn btn-teal" id="btn-auto" onclick="doAutoToggle()">ACTIVAR AUTO</button>
+            </div>
+            <div style="font-size: 11px; color: #9ca3af; margin-top: 8px;">
+                Llena el tanque solo: produce cuando baja del mínimo, para al llegar al máximo.
+                Requiere presión de red. El STOP de emergencia lo desactiva.
+            </div>
         </section>
 
         <!-- Operaciones -->
@@ -395,6 +423,25 @@
                     Object.entries(data.sensors).map(([name, s]) => sensorRow(name, s)).join('');
             }
 
+            // Modo automático
+            const autoOn = !!data.system.auto_enabled;
+            const autoStatus = document.getElementById('auto-status');
+            const autoBtn = document.getElementById('btn-auto');
+            const autoCard = document.getElementById('auto-card');
+            if (autoOn) {
+                autoStatus.textContent = '🟢 Activado';
+                autoStatus.className = 'auto-status auto-on';
+                autoBtn.textContent = 'DESACTIVAR AUTO';
+                autoBtn.className = 'btn btn-amber';
+                autoCard.classList.add('auto-card-active');
+            } else {
+                autoStatus.textContent = '⚪ Desactivado';
+                autoStatus.className = 'auto-status auto-off';
+                autoBtn.textContent = 'ACTIVAR AUTO';
+                autoBtn.className = 'btn btn-teal';
+                autoCard.classList.remove('auto-card-active');
+            }
+
             // Actuadores con botones de toggle
             const opActive = !!data.system.operation;
 
@@ -473,6 +520,18 @@
                     <span class="actuator-state">${stateText}</span>
                     <button class="${btnClass}" onclick="toggleRelay(${ch})" ${disabled}>${btnText}</button>
                 </div>`;
+        }
+
+        async function doAutoToggle() {
+            try {
+                const r = await fetch('/api/auto/toggle', {method: 'POST'});
+                if (!r.ok) {
+                    alert('Error al cambiar modo automático');
+                }
+                fetchStatus();
+            } catch (e) {
+                alert('Error de red: ' + e.message);
+            }
         }
 
         async function toggleRelay(ch) {
