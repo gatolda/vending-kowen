@@ -233,6 +233,26 @@
             text-align: center;
             font-size: 14px;
         }
+        .sensor-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 15px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .sensor-row:last-child { border-bottom: none; }
+        .sensor-state {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .sensor-ok   { color: #047857; }
+        .sensor-idle { color: #6b7280; }
+        .sensor-alert{ color: #b91c1c; }
+        .sensor-na   { color: #9ca3af; font-style: italic; font-weight: 400; }
     </style>
 </head>
 <body>
@@ -256,6 +276,12 @@
         <div id="op-banner" class="operation-banner" style="display: none;">
             ⏳ <span id="op-banner-text">Operando...</span>
         </div>
+
+        <!-- Sensores -->
+        <section class="section">
+            <h2 class="section-title">📊 Estado del tanque</h2>
+            <div id="sensors">cargando...</div>
+        </section>
 
         <!-- Operaciones -->
         <h2 class="section-title" style="padding: 0 8px; margin-bottom: 12px;">🎬 Operaciones</h2>
@@ -363,6 +389,12 @@
                 });
             }
 
+            // Sensores
+            if (data.sensors) {
+                document.getElementById('sensors').innerHTML =
+                    Object.entries(data.sensors).map(([name, s]) => sensorRow(name, s)).join('');
+            }
+
             // Actuadores con botones de toggle
             const opActive = !!data.system.operation;
 
@@ -405,6 +437,26 @@
                 </div>`;
             }).join('');
             document.getElementById('events').innerHTML = logHtml || '<div class="log-row"><span>Sin eventos aún</span></div>';
+        }
+
+        function sensorRow(name, s) {
+            let cls, dot, txt;
+            if (s.pressed === null) {
+                cls = 'sensor-na'; dot = 'dot-gray'; txt = 'sin lectura';
+            } else if (s.pressed) {
+                cls = 'sensor-ok'; dot = 'dot-green'; txt = s.text_on;
+            } else if (s.alert_off) {
+                cls = 'sensor-alert'; dot = 'dot-red'; txt = s.text_off;
+            } else {
+                cls = 'sensor-idle'; dot = 'dot-gray'; txt = s.text_off;
+            }
+            return `
+                <div class="sensor-row">
+                    <span>${s.label}</span>
+                    <span class="sensor-state ${cls}">
+                        <span class="dot ${dot}"></span>${txt}
+                    </span>
+                </div>`;
         }
 
         function actuatorRow(ch, relay, operationActive) {

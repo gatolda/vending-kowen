@@ -14,7 +14,7 @@ Acceso:
 """
 
 from flask import Flask, render_template, jsonify, request
-from gpiozero import OutputDevice
+from gpiozero import OutputDevice, Button
 from datetime import datetime
 import threading
 import time
@@ -50,6 +50,15 @@ RELAY_CHANNELS = {
 
 ACTIVE_HIGH = False  # módulo es active-LOW
 
+# Sensores digitales (flotadores + presostato)
+# Button con pull_up interno: is_pressed=True cuando el pin va a GND (contacto cerrado)
+# Formato: nombre → (GPIO, etiqueta, texto_pressed, texto_released, nivel_alerta_si_released)
+SENSORS = {
+    "MAX":        (12, "Flotador tanque lleno",  "Lleno",     "No lleno", False),
+    "OUT":        (18, "Flotador tanque agua",   "Con agua",  "Vacío",    True),
+    "PRESOSTATO": (13, "Presión agua de red",    "OK",        "Sin presión", True),
+}
+
 # Tiempos de transición seguros
 UV_LEAD = 0.5
 PUMP_LEAD = 1.0
@@ -64,6 +73,7 @@ MAX_PRODUCTION_TIME = 300.0  # 5 min safety timeout
 # ============================================
 
 relays = {}                    # ch → OutputDevice
+sensors = {}                   # nombre → Button
 events = []                    # log de eventos
 current_operation = None       # nombre de la operación en curso
 operation_thread = None        # thread de la operación actual
@@ -80,7 +90,18 @@ def init_gpio():
     """Crea OutputDevices para todos los canales. Todos inician OFF."""
     for ch, (gpio, _, _) in RELAY_CHANNELS.items():
         relays[ch] = OutputDevice(gpio, active_high=ACTIVE_HIGH, initial_value=False)
+    init_sensors()
     log_event("Sistema iniciado", "ok")
+
+
+def init_sensors():
+    """Crea Buttons para los sensores. Si alguno falla, lo deja en None (no crashea)."""
+    for name, (gpio, desc, *_rest) in SENSORS.items():
+        try:
+            sensors[name] = Button(gpio, pull_up=True)
+        except Exception as e:
+            sensors[name] = None
+            log_event(f"Sensor {name} (GPIO {gpio}) no inicializó: {e}", "warn")
 
 
 def log_event(message, level="info"):
@@ -249,6 +270,16 @@ def status():
                 "module": RELAY_CHANNELS[ch][2],  # "main" o "pump"
             }
             for ch, r in relays.items()
+        },
+        "sensors": {
+            name: {
+                "label": cfg[1],
+                "pressed": (sensors[name].is_pressed if sensors.get(name) else None),
+                "text_on": cfg[2],
+                "text_off": cfg[3],
+                "alert_off": cfg[4],
+            }
+            for name, cfg in SENSORS.items()
         },
         "events": events[-20:],
     })
