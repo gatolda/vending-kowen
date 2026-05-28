@@ -92,7 +92,8 @@ EV_CLOSE_FIRST = 0.3
 PUMP_OFF_DELAY = 1.0
 PRESSURE_RELIEF = 1.0
 FLUSH_TIME = 15.0
-MAX_PRODUCTION_TIME = 300.0  # 5 min safety timeout
+MAX_PRODUCTION_TIME = 300.0  # 5 min safety timeout (producción manual)
+AUTO_FILL_TIMEOUT = 1800.0   # 30 min backstop autollenado (corte real = sensor MÁXIMO; esto solo salta ante falla)
 
 # ============================================
 # ESTADO GLOBAL
@@ -309,20 +310,21 @@ def run_auto_production():
         relays[5].off()
         log_event("Autollenado: producción al tanque", "info")
 
-        # Monitorear hasta máximo / timeout / sin presión / stop
+        # Corte REAL = sensor MÁXIMO. El backstop (30 min) solo salta ante falla.
         start = time.time()
-        while time.time() - start < MAX_PRODUCTION_TIME:
+        while time.time() - start < AUTO_FILL_TIMEOUT:
             if stop_event.wait(0.5):
                 return
             if sensor_active("MAX"):
                 reached_max = True
-                log_event("Autollenado: tanque LLENO, parando", "ok")
+                mins = (time.time() - start) / 60
+                log_event(f"Autollenado: tanque LLENO en {mins:.1f} min, parando", "ok")
                 break
             if sensor_active("PRESOSTATO") is False:
                 log_event("Autollenado: SIN PRESIÓN de red, abortando", "warn")
                 break
         else:
-            log_event("Autollenado: timeout sin llegar a máximo", "warn")
+            log_event(f"Autollenado: backstop {AUTO_FILL_TIMEOUT/60:.0f} min sin llegar a máximo (revisar flotador/fuga)", "warn")
 
         # Apagado seguro
         relays[10].off()
