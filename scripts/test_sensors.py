@@ -5,9 +5,9 @@ Test de sensores digitales — flotadores + presostato.
 Lee continuamente el estado de los 3 sensores y los imprime cada 0.5s.
 Útil para verificar cableado y entender los estados ON/OFF.
 
-Sensores cableados (mapeo corregido 2026-05-28):
-    Flotador MÁXIMO (tanque lleno)      → GPIO 18 (pin 12)
-    Flotador MÍNIMO (tanque vacío)      → GPIO 12 (pin 32)
+Sensores cableados (re-swap tras recableado a 2 placas, 2026-05-28):
+    Flotador MÁXIMO (tanque lleno)      → GPIO 12 (pin 32)
+    Flotador MÍNIMO (tanque vacío)      → GPIO 18 (pin 12)
     Presostato red (agua municipal)     → GPIO 13 (pin 33)
 
 Cableado físico de cada sensor:
