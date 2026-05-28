@@ -342,24 +342,25 @@ def run_auto_production():
 
 
 def auto_loop():
-    """Loop de control del modo automático (mantener tanque lleno).
+    """Loop de control del modo automático (histéresis MÍN→MÁX).
     Corre siempre en background; sólo actúa cuando auto_enabled está activo
-    y no hay otra operación en curso. Produce apenas el MÁXIMO deja de marcar lleno."""
+    y no hay otra operación en curso. Arranca cuando el nivel baja del MÍNIMO,
+    llena hasta el MÁXIMO. La banda muerta MÍN→MÁX evita el rebote."""
     last_no_pressure_log = 0.0
     while True:
         time.sleep(2)
         if not auto_enabled or current_operation is not None:
             continue
 
-        max_full = sensor_active("MAX")
-        if max_full is not False:
-            continue  # ya está lleno (o sin lectura) → nada que hacer
+        min_water = sensor_active("MIN")
+        if min_water is not False:
+            continue  # todavía hay agua sobre el mínimo (o sin lectura) → nada que hacer
 
-        # Tanque por debajo del máximo → querer rellenar
+        # Tanque por debajo del mínimo → rellenar hasta el máximo
         if sensor_active("PRESOSTATO") is False:
             now = time.time()
             if now - last_no_pressure_log > 30:
-                log_event("Autollenado en espera: tanque no lleno pero sin presión de red", "warn")
+                log_event("Autollenado en espera: tanque bajo el mínimo pero sin presión de red", "warn")
                 last_no_pressure_log = now
             continue
 
