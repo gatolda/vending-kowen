@@ -441,14 +441,14 @@
 
         function sensorRow(name, s) {
             let cls, dot, txt;
-            if (s.pressed === null) {
+            if (s.active === null) {
                 cls = 'sensor-na'; dot = 'dot-gray'; txt = 'sin lectura';
-            } else if (s.pressed) {
-                cls = 'sensor-ok'; dot = 'dot-green'; txt = s.text_on;
-            } else if (s.alert_off) {
-                cls = 'sensor-alert'; dot = 'dot-red'; txt = s.text_off;
+            } else if (s.active) {
+                cls = 'sensor-ok'; dot = 'dot-green'; txt = s.text_active;
+            } else if (s.alert_when_inactive) {
+                cls = 'sensor-alert'; dot = 'dot-red'; txt = s.text_inactive;
             } else {
-                cls = 'sensor-idle'; dot = 'dot-gray'; txt = s.text_off;
+                cls = 'sensor-idle'; dot = 'dot-gray'; txt = s.text_inactive;
             }
             return `
                 <div class="sensor-row">

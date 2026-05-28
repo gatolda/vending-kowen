@@ -51,12 +51,36 @@ RELAY_CHANNELS = {
 ACTIVE_HIGH = False  # módulo es active-LOW
 
 # Sensores digitales (flotadores + presostato)
-# Button con pull_up interno: is_pressed=True cuando el pin va a GND (contacto cerrado)
-# Formato: nombre → (GPIO, etiqueta, texto_pressed, texto_released, nivel_alerta_si_released)
+# Button con pull_up interno: is_pressed=True cuando el pin va a GND.
+# Flotadores: arriba (agua presente) = released (is_pressed=False) → active_when_pressed=False.
+#   GPIO 18 = flotador MÁXIMO, GPIO 12 = flotador MÍNIMO (swap corregido 2026-05-28).
+# Presostato: hay presión = pressed → active_when_pressed=True.
+# active = (is_pressed == active_when_pressed) → True significa "presente/OK" en ese nivel.
 SENSORS = {
-    "MAX":        (12, "Flotador tanque lleno",  "Lleno",     "No lleno", False),
-    "OUT":        (18, "Flotador tanque agua",   "Con agua",  "Vacío",    True),
-    "PRESOSTATO": (13, "Presión agua de red",    "OK",        "Sin presión", True),
+    "MAX": {
+        "gpio": 18,
+        "label": "Flotador máximo",
+        "active_when_pressed": False,
+        "text_active": "Lleno",
+        "text_inactive": "No lleno",
+        "alert_when_inactive": False,
+    },
+    "MIN": {
+        "gpio": 12,
+        "label": "Flotador mínimo",
+        "active_when_pressed": False,
+        "text_active": "Con agua",
+        "text_inactive": "Vacío",
+        "alert_when_inactive": True,
+    },
+    "PRESOSTATO": {
+        "gpio": 13,
+        "label": "Presión agua de red",
+        "active_when_pressed": True,
+        "text_active": "OK",
+        "text_inactive": "Sin presión",
+        "alert_when_inactive": True,
+    },
 }
 
 # Tiempos de transición seguros
@@ -96,7 +120,8 @@ def init_gpio():
 
 def init_sensors():
     """Crea Buttons para los sensores. Si alguno falla, lo deja en None (no crashea)."""
-    for name, (gpio, desc, *_rest) in SENSORS.items():
+    for name, cfg in SENSORS.items():
+        gpio = cfg["gpio"]
         try:
             sensors[name] = Button(gpio, pull_up=True)
         except Exception as e:
@@ -273,11 +298,12 @@ def status():
         },
         "sensors": {
             name: {
-                "label": cfg[1],
-                "pressed": (sensors[name].is_pressed if sensors.get(name) else None),
-                "text_on": cfg[2],
-                "text_off": cfg[3],
-                "alert_off": cfg[4],
+                "label": cfg["label"],
+                "active": (sensors[name].is_pressed == cfg["active_when_pressed"]
+                           if sensors.get(name) else None),
+                "text_active": cfg["text_active"],
+                "text_inactive": cfg["text_inactive"],
+                "alert_when_inactive": cfg["alert_when_inactive"],
             }
             for name, cfg in SENSORS.items()
         },

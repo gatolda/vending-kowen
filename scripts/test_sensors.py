@@ -5,26 +5,24 @@ Test de sensores digitales — flotadores + presostato.
 Lee continuamente el estado de los 3 sensores y los imprime cada 0.5s.
 Útil para verificar cableado y entender los estados ON/OFF.
 
-Sensores cableados:
-    Flotador MAX (tanque lleno)         → GPIO 12 (pin 32)
-    Flotador OUT (tanque vacío)         → GPIO 18 (pin 12)
+Sensores cableados (mapeo corregido 2026-05-28):
+    Flotador MÁXIMO (tanque lleno)      → GPIO 18 (pin 12)
+    Flotador MÍNIMO (tanque vacío)      → GPIO 12 (pin 32)
     Presostato red (agua municipal)     → GPIO 13 (pin 33)
 
 Cableado físico de cada sensor:
     Cable A → GPIO indicado del Pi
     Cable B → GND (cualquier pin GND del Pi: 6, 9, 14, 20, 25, 30, 34, 39)
 
-Cómo interpretar los estados:
+Cómo interpretar los estados (OJO: flotadores con polaridad invertida):
 
-    Flotador MAX:
-        PRESSED (pull-up activo, GPIO bajo)  → flotador arriba, tanque LLENO
-        RELEASED (sin presionar, GPIO alto)  → flotador abajo, tanque NO LLENO
+    Flotadores (MÁXIMO y MÍNIMO):
+        RELEASED (GPIO alto)  → flotador ARRIBA, hay agua en ese nivel
+        PRESSED  (GPIO bajo)  → flotador ABAJO, sin agua en ese nivel
+        → MÁXIMO released = tanque LLENO (parar producción)
+        → MÍNIMO pressed   = tanque VACÍO ⚠️
 
-    Flotador OUT:
-        PRESSED   → flotador arriba, hay agua
-        RELEASED  → flotador abajo, VACÍO ⚠️
-
-    Presostato red:
+    Presostato red (polaridad normal):
         PRESSED   → hay presión, agua de red OK
         RELEASED  → sin presión, sin agua de red ⚠️
 
@@ -42,10 +40,10 @@ import time
 import signal
 import sys
 
-# Mapeo: nombre → (GPIO, descripción)
+# Mapeo: nombre → (GPIO, descripción) — alineado con app.py
 SENSORS = {
-    "MAX":         (12, "Flotador tanque LLENO"),
-    "OUT":         (18, "Flotador tanque VACÍO"),
+    "MAX":         (18, "Flotador máximo (tanque lleno)"),
+    "MIN":         (12, "Flotador mínimo (tanque vacío)"),
     "PRESOSTATO":  (13, "Presostato agua de red"),
 }
 
