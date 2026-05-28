@@ -95,6 +95,7 @@ FLUSH_TIME = 15.0
 MAX_PRODUCTION_TIME = 300.0  # 5 min safety timeout (producción manual)
 AUTO_FILL_TIMEOUT = 1800.0   # 30 min backstop autollenado (corte real = sensor MÁXIMO; esto solo salta ante falla)
 AUTO_REFILL_COOLDOWN = 180.0 # 3 min mínimo entre llenados auto (anti-rebote); se ignora si el nivel cae bajo el MÍNIMO
+PRESSURE_LOSS_GRACE = 5.0    # seg de pérdida de presión SOSTENIDA antes de abortar (ignora glitches/EMI)
 
 # ============================================
 # ESTADO GLOBAL
@@ -338,6 +339,7 @@ def run_auto_production():
 
         # Corte REAL = sensor MÁXIMO. El backstop (30 min) solo salta ante falla.
         start = time.time()
+        no_pressure_since = None  # debounce del presostato (ignora glitches/EMI)
         while time.time() - start < AUTO_FILL_TIMEOUT:
             if stop_event.wait(0.5):
                 return
@@ -346,9 +348,15 @@ def run_auto_production():
                 mins = (time.time() - start) / 60
                 log_event(f"Autollenado: tanque LLENO en {mins:.1f} min, parando", "ok")
                 break
+            # Presostato con debounce: abortar solo si la pérdida de presión es SOSTENIDA
             if sensor_active("PRESOSTATO") is False:
-                log_event("Autollenado: SIN PRESIÓN de red, abortando", "warn")
-                break
+                if no_pressure_since is None:
+                    no_pressure_since = time.time()
+                elif time.time() - no_pressure_since >= PRESSURE_LOSS_GRACE:
+                    log_event(f"Autollenado: sin presión sostenida ({PRESSURE_LOSS_GRACE:.0f}s), abortando", "warn")
+                    break
+            else:
+                no_pressure_since = None  # presión OK → resetear el contador
         else:
             log_event(f"Autollenado: backstop {AUTO_FILL_TIMEOUT/60:.0f} min sin llegar a máximo (revisar flotador/fuga)", "warn")
 
