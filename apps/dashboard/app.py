@@ -52,10 +52,12 @@ ACTIVE_HIGH = False  # módulo es active-LOW
 
 # Sensores digitales (flotadores + presostato)
 # Button con pull_up interno: is_pressed=True cuando el pin va a GND.
-# Flotadores: arriba (agua presente) = released (is_pressed=False) → active_when_pressed=False.
-#   GPIO 18 = flotador MÁXIMO, GPIO 12 = flotador MÍNIMO (swap corregido 2026-05-28).
-# Presostato: hay presión = pressed → active_when_pressed=True.
 # active = (is_pressed == active_when_pressed) → True significa "presente/OK" en ese nivel.
+# GPIO 18 = flotador MÁXIMO, GPIO 12 = flotador MÍNIMO (swap corregido 2026-05-28).
+# Polaridades OPUESTAS entre los dos flotadores (montaje/cableado distinto, verificado en campo):
+#   MÁXIMO: agua presente (flotador arriba) = released → active_when_pressed=False
+#   MÍNIMO: agua presente (flotador arriba) = pressed  → active_when_pressed=True
+# Presostato: hay presión = pressed → active_when_pressed=True.
 SENSORS = {
     "MAX": {
         "gpio": 18,
@@ -68,7 +70,7 @@ SENSORS = {
     "MIN": {
         "gpio": 12,
         "label": "Flotador mínimo",
-        "active_when_pressed": False,
+        "active_when_pressed": True,
         "text_active": "Con agua",
         "text_inactive": "Vacío",
         "alert_when_inactive": True,

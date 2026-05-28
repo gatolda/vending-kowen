@@ -14,15 +14,17 @@ Cableado físico de cada sensor:
     Cable A → GPIO indicado del Pi
     Cable B → GND (cualquier pin GND del Pi: 6, 9, 14, 20, 25, 30, 34, 39)
 
-Cómo interpretar los estados (OJO: flotadores con polaridad invertida):
+Cómo interpretar los estados (OJO: los dos flotadores tienen polaridad OPUESTA):
 
-    Flotadores (MÁXIMO y MÍNIMO):
-        RELEASED (GPIO alto)  → flotador ARRIBA, hay agua en ese nivel
-        PRESSED  (GPIO bajo)  → flotador ABAJO, sin agua en ese nivel
-        → MÁXIMO released = tanque LLENO (parar producción)
-        → MÍNIMO pressed   = tanque VACÍO ⚠️
+    Flotador MÁXIMO (GPIO 18):
+        RELEASED (GPIO alto)  → flotador ARRIBA, agua llegó al máximo → tanque LLENO
+        PRESSED  (GPIO bajo)  → flotador abajo, agua por debajo del máximo
 
-    Presostato red (polaridad normal):
+    Flotador MÍNIMO (GPIO 12):
+        PRESSED  (GPIO bajo)  → flotador ARRIBA, hay agua sobre el mínimo
+        RELEASED (GPIO alto)  → flotador abajo, tanque VACÍO ⚠️
+
+    Presostato red (GPIO 13):
         PRESSED   → hay presión, agua de red OK
         RELEASED  → sin presión, sin agua de red ⚠️
 
