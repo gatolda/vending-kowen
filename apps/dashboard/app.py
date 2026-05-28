@@ -94,6 +94,7 @@ PRESSURE_RELIEF = 1.0
 FLUSH_TIME = 15.0
 MAX_PRODUCTION_TIME = 300.0  # 5 min safety timeout (producción manual)
 AUTO_FILL_TIMEOUT = 1800.0   # 30 min backstop autollenado (corte real = sensor MÁXIMO; esto solo salta ante falla)
+AUTO_REFILL_COOLDOWN = 180.0 # 3 min mínimo entre llenados auto (anti-rebote); se ignora si el nivel cae bajo el MÍNIMO
 
 # ============================================
 # ESTADO GLOBAL
@@ -342,31 +343,38 @@ def run_auto_production():
 
 
 def auto_loop():
-    """Loop de control del modo automático (histéresis MÍN→MÁX).
-    Corre siempre en background; sólo actúa cuando auto_enabled está activo
-    y no hay otra operación en curso. Arranca cuando el nivel baja del MÍNIMO,
-    llena hasta el MÁXIMO. La banda muerta MÍN→MÁX evita el rebote."""
+    """Loop de control del modo automático (mantener tanque lleno).
+    Arranca apenas el MÁXIMO deja de marcar lleno y llena hasta el MÁXIMO.
+    Cooldown anti-rebote entre llenados; se ignora si el nivel cae bajo el
+    MÍNIMO (emergencia → rellena ya). El MÍNIMO es solo alarma, no control normal."""
     last_no_pressure_log = 0.0
+    last_fill_end = 0.0
     while True:
         time.sleep(2)
         if not auto_enabled or current_operation is not None:
             continue
 
-        min_water = sensor_active("MIN")
-        if min_water is not False:
-            continue  # todavía hay agua sobre el mínimo (o sin lectura) → nada que hacer
+        if sensor_active("MAX") is not False:
+            continue  # lleno (o sin lectura) → nada que hacer
 
-        # Tanque por debajo del mínimo → rellenar hasta el máximo
+        # No lleno → querer rellenar. Respetar cooldown salvo emergencia (bajo el mínimo).
+        below_min = (sensor_active("MIN") is False)
+        if not below_min and (time.time() - last_fill_end < AUTO_REFILL_COOLDOWN):
+            continue
+
         if sensor_active("PRESOSTATO") is False:
             now = time.time()
             if now - last_no_pressure_log > 30:
-                log_event("Autollenado en espera: tanque bajo el mínimo pero sin presión de red", "warn")
+                log_event("Autollenado en espera: tanque no lleno pero sin presión de red", "warn")
                 last_no_pressure_log = now
             continue
 
         # Condiciones OK → arrancar ciclo de producción
+        if below_min:
+            log_event("Autollenado: nivel bajo el MÍNIMO, rellenando (emergencia)", "warn")
         stop_event.clear()
         run_auto_production()
+        last_fill_end = time.time()
 
 
 # ============================================
