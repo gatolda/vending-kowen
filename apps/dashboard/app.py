@@ -103,11 +103,23 @@ AUTO_REFILL_COOLDOWN = 180.0 # 3 min mínimo entre llenados auto (anti-rebote); 
 relays = {}                    # ch → OutputDevice
 sensors = {}                   # nombre → Button
 events = []                    # log de eventos
-current_operation = None       # nombre de la operación en curso
-operation_thread = None        # thread de la operación actual
-stop_event = threading.Event() # señal para abortar
+
+# ── Carril PRODUCCIÓN (flush / produce / autollenado) — relés CH3, CH5, CH10 ──
+current_operation = None       # nombre de la operación de producción en curso
+operation_thread = None        # thread de producción
+stop_event = threading.Event() # señal para abortar producción
+
+# ── Carril DESPACHO (llenar botellón) — relés CH4, CH9 — concurrente con producción ──
+dispense_active = None         # nombre del despacho en curso (o None)
+dispense_thread = None         # thread de despacho
+dispense_stop = threading.Event()  # señal para abortar despacho
+
 auto_enabled = False           # modo automático (autollenado por sensores)
 last_auto_fill_end = 0.0       # timestamp del último autollenado (para el cooldown anti-rebote)
+
+# Relés de cada carril (para apagar solo lo propio sin pisar el otro carril)
+PRODUCTION_CHANNELS = [3, 5, 10]
+DISPENSE_CHANNELS = [4, 9]
 
 START_TIME = datetime.now()
 
@@ -176,27 +188,37 @@ def all_relays_off():
             pass
 
 
+def channels_off(channels):
+    """Apaga solo los relés de los canales indicados (no toca el otro carril)."""
+    for ch in channels:
+        try:
+            relays[ch].off()
+        except Exception:
+            pass
+
+
 # ============================================
 # OPERACIONES (corren en thread separado)
 # ============================================
 
 def run_fill_bottle(seconds):
-    global current_operation, last_auto_fill_end
-    current_operation = f"Llenando botellón ({seconds}s)"
+    # Carril DESPACHO — concurrente con producción. Usa dispense_stop y solo apaga CH4/CH9.
+    global dispense_active, last_auto_fill_end
+    dispense_active = f"Llenando botellón ({seconds}s)"
     log_event(f"Llenado iniciado ({seconds}s)", "ok")
 
     try:
-        # Bomba de llenado via contactor (CH9 del módulo 2ch — asumido)
+        # Bomba de llenado via contactor (CH9 del módulo 2ch)
         relays[9].on()
-        if stop_event.wait(PUMP_LEAD): return
+        if dispense_stop.wait(PUMP_LEAD): return
 
         # EV llenado botellón (CH4 módulo principal)
         relays[4].on()
-        if stop_event.wait(seconds): return
+        if dispense_stop.wait(seconds): return
 
         # Cierre seguro (orden inverso)
         relays[4].off()
-        if stop_event.wait(EV_CLOSE_FIRST): return
+        if dispense_stop.wait(EV_CLOSE_FIRST): return
 
         relays[9].off()
 
@@ -205,8 +227,8 @@ def run_fill_bottle(seconds):
     except Exception as e:
         log_event(f"Error en llenado: {e}", "err")
     finally:
-        all_relays_off()
-        current_operation = None
+        channels_off(DISPENSE_CHANNELS)  # solo CH4/CH9, no toca la producción
+        dispense_active = None
         # Tras despachar una recarga, resetear cooldown → la osmosis repone enseguida
         last_auto_fill_end = 0.0
 
@@ -245,7 +267,7 @@ def run_flush():
     except Exception as e:
         log_event(f"Error en flush: {e}", "err")
     finally:
-        all_relays_off()
+        channels_off(PRODUCTION_CHANNELS)
         current_operation = None
 
 
@@ -284,7 +306,7 @@ def run_produce_water():
     except Exception as e:
         log_event(f"Error en producción: {e}", "err")
     finally:
-        all_relays_off()
+        channels_off(PRODUCTION_CHANNELS)
         current_operation = None
 
 
@@ -338,7 +360,7 @@ def run_auto_production():
     except Exception as e:
         log_event(f"Error en autollenado: {e}", "err")
     finally:
-        all_relays_off()
+        channels_off(PRODUCTION_CHANNELS)
         current_operation = None
         if not reached_max:
             auto_enabled = False
@@ -396,6 +418,7 @@ def status():
         "system": {
             "uptime": get_uptime(),
             "operation": current_operation,
+            "dispense": dispense_active,
             "auto_enabled": auto_enabled,
         },
         "relays": {
@@ -423,18 +446,19 @@ def status():
 
 @app.route("/api/operation/fill", methods=["POST"])
 def op_fill():
-    global operation_thread
+    # Carril DESPACHO: independiente de la producción. Puede correr en paralelo con la osmosis.
+    global dispense_thread
 
-    if current_operation is not None:
-        return jsonify({"error": f"Operación en curso: {current_operation}"}), 409
+    if dispense_active is not None:
+        return jsonify({"error": f"Despacho en curso: {dispense_active}"}), 409
 
     data = request.get_json() or {}
     seconds = float(data.get("seconds", 5))
     seconds = max(1, min(60, seconds))
 
-    stop_event.clear()
-    operation_thread = threading.Thread(target=run_fill_bottle, args=(seconds,), daemon=True)
-    operation_thread.start()
+    dispense_stop.clear()
+    dispense_thread = threading.Thread(target=run_fill_bottle, args=(seconds,), daemon=True)
+    dispense_thread.start()
     return jsonify({"status": "started", "operation": f"fill_{seconds}s"})
 
 
@@ -469,8 +493,9 @@ def op_stop():
     global auto_enabled
     log_event("STOP solicitado", "warn")
     auto_enabled = False  # emergencia corta también el modo automático
-    stop_event.set()
-    all_relays_off()
+    stop_event.set()      # corta producción
+    dispense_stop.set()   # corta despacho
+    all_relays_off()      # apaga TODO (ambos carriles)
     log_event("Todos los relés apagados", "ok")
     return jsonify({"status": "stopped"})
 
@@ -489,9 +514,11 @@ def auto_toggle():
 
 @app.route("/api/relay/<int:ch>/toggle", methods=["POST"])
 def relay_toggle(ch):
-    """Activa/desactiva un relé manualmente. Solo si no hay operación en curso."""
+    """Activa/desactiva un relé manualmente. Solo si no hay operación ni despacho en curso."""
     if current_operation is not None:
         return jsonify({"error": f"Operación en curso: {current_operation}"}), 409
+    if dispense_active is not None:
+        return jsonify({"error": f"Despacho en curso: {dispense_active}"}), 409
 
     if ch not in relays:
         return jsonify({"error": f"Canal {ch} no existe o está dañado"}), 404

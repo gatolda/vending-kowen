@@ -400,22 +400,25 @@
             // Uptime
             document.getElementById('system-uptime').textContent = data.system.uptime + ' · OK';
 
-            // Banner de operación
+            // Banner + botones — dos carriles independientes (producción y despacho)
+            const prodOp = data.system.operation;     // flush / produce / autollenado
+            const dispOp = data.system.dispense;       // llenar botellón
             const banner = document.getElementById('op-banner');
             const opText = document.getElementById('op-banner-text');
-            if (data.system.operation) {
+            const activeMsgs = [];
+            if (prodOp) activeMsgs.push(prodOp);
+            if (dispOp) activeMsgs.push(dispOp);
+            if (activeMsgs.length) {
                 banner.style.display = 'block';
-                opText.textContent = data.system.operation;
-                // Deshabilitar botones
-                ['btn-fill', 'btn-flush', 'btn-produce'].forEach(id => {
-                    document.getElementById(id).disabled = true;
-                });
+                opText.textContent = activeMsgs.join('  +  ');
             } else {
                 banner.style.display = 'none';
-                ['btn-fill', 'btn-flush', 'btn-produce'].forEach(id => {
-                    document.getElementById(id).disabled = false;
-                });
             }
+            // Despacho se bloquea solo si hay despacho en curso (puede correr junto a producción)
+            document.getElementById('btn-fill').disabled = !!dispOp;
+            // Flush/Producir manual se bloquean si hay producción en curso
+            document.getElementById('btn-flush').disabled = !!prodOp;
+            document.getElementById('btn-produce').disabled = !!prodOp;
 
             // Sensores
             if (data.sensors) {
@@ -442,8 +445,8 @@
                 autoCard.classList.remove('auto-card-active');
             }
 
-            // Actuadores con botones de toggle
-            const opActive = !!data.system.operation;
+            // Actuadores con botones de toggle — bloqueados si hay CUALQUIER carril activo
+            const opActive = !!(prodOp || dispOp);
 
             // Módulo principal (1-8) — CH3 ya funciona tras reemplazo del módulo
             document.getElementById('actuators-main').innerHTML = `
