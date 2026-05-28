@@ -107,6 +107,7 @@ current_operation = None       # nombre de la operación en curso
 operation_thread = None        # thread de la operación actual
 stop_event = threading.Event() # señal para abortar
 auto_enabled = False           # modo automático (autollenado por sensores)
+last_auto_fill_end = 0.0       # timestamp del último autollenado (para el cooldown anti-rebote)
 
 START_TIME = datetime.now()
 
@@ -180,7 +181,7 @@ def all_relays_off():
 # ============================================
 
 def run_fill_bottle(seconds):
-    global current_operation
+    global current_operation, last_auto_fill_end
     current_operation = f"Llenando botellón ({seconds}s)"
     log_event(f"Llenado iniciado ({seconds}s)", "ok")
 
@@ -206,6 +207,8 @@ def run_fill_bottle(seconds):
     finally:
         all_relays_off()
         current_operation = None
+        # Tras despachar una recarga, resetear cooldown → la osmosis repone enseguida
+        last_auto_fill_end = 0.0
 
 
 def run_flush():
@@ -346,9 +349,10 @@ def auto_loop():
     """Loop de control del modo automático (mantener tanque lleno).
     Arranca apenas el MÁXIMO deja de marcar lleno y llena hasta el MÁXIMO.
     Cooldown anti-rebote entre llenados; se ignora si el nivel cae bajo el
-    MÍNIMO (emergencia → rellena ya). El MÍNIMO es solo alarma, no control normal."""
+    MÍNIMO (emergencia → rellena ya) o si se despachó una recarga (resetea cooldown).
+    El MÍNIMO es solo alarma, no control normal."""
+    global last_auto_fill_end
     last_no_pressure_log = 0.0
-    last_fill_end = 0.0
     while True:
         time.sleep(2)
         if not auto_enabled or current_operation is not None:
@@ -359,7 +363,7 @@ def auto_loop():
 
         # No lleno → querer rellenar. Respetar cooldown salvo emergencia (bajo el mínimo).
         below_min = (sensor_active("MIN") is False)
-        if not below_min and (time.time() - last_fill_end < AUTO_REFILL_COOLDOWN):
+        if not below_min and (time.time() - last_auto_fill_end < AUTO_REFILL_COOLDOWN):
             continue
 
         if sensor_active("PRESOSTATO") is False:
@@ -374,7 +378,7 @@ def auto_loop():
             log_event("Autollenado: nivel bajo el MÍNIMO, rellenando (emergencia)", "warn")
         stop_event.clear()
         run_auto_production()
-        last_fill_end = time.time()
+        last_auto_fill_end = time.time()
 
 
 # ============================================
