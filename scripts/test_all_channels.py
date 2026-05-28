@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
 """
-Test secuencial de los canales del módulo de relés principal.
+Test secuencial de los canales del módulo de relés principal (8ch).
 
-⚠️  CH3 DAÑADO (relé soldado, no se usa más). Su función pasó a CH7.
+Módulo 8ch reemplazado 2026-05-27 → CH3 ahora funciona.
 
 Activa cada canal por 2 segundos en secuencia.
 Útil para validar que todos los canales del módulo funcionan,
-y que los GPIOs asignados no están dañados.
+y para identificar qué válvula/carga está en cada canal.
 
 Uso:
-    python3 test_all_channels.py              # secuencia completa (sin CH3)
-    python3 test_all_channels.py 7            # solo CH7
-    python3 test_all_channels.py 1 4 5        # canales específicos
+    python3 test_all_channels.py              # secuencia completa
+    python3 test_all_channels.py 5            # solo CH5
+    python3 test_all_channels.py 3 4 5        # canales específicos
 
-Mapeo canal → carga (módulo principal):
-    CH1 → EV #3 llenado botellón     (GPIO 16, pin 36)
-    CH2 → Bomba despacho 220V        (GPIO 19, pin 35)
-    CH3 → ❌ DAÑADO, no usar         (GPIO 27, pin 13)
-    CH4 → EV #2 salida RO / flush    (GPIO 22, pin 15)
-    CH5 → Lámpara UV                 (GPIO 23, pin 16)
-    CH6 → Generador ozono            (GPIO 24, pin 18)
-    CH7 → EV #1 entrada bombas RO    (GPIO  4, pin  7)  ← antes CH3
-    CH8 → Reserva                    (GPIO  7, pin 26)
+Mapeo canal → carga (módulo principal), actualizado 2026-05-27:
+    CH1 → Luz publicidad frontal     (GPIO 16, pin 36)
+    CH2 → Generador ozono            (GPIO 19, pin 35)
+    CH3 → EV entrada bombas RO       (GPIO 27, pin 13)
+    CH4 → EV llenado botellón        (GPIO 22, pin 15)
+    CH5 → EV flush salida            (GPIO 23, pin 16)
+    CH6 → Libre                      (GPIO 24, pin 18)
+    CH7 → Libre                      (GPIO  4, pin  7)
+    CH8 → Libre                      (GPIO  7, pin 26)
 """
 
 from gpiozero import OutputDevice
@@ -29,17 +29,16 @@ import time
 import sys
 import signal
 
-# Mapeo canal → (GPIO, descripción)
-# CH3 omitido (dañado). Función movida a CH7.
+# Mapeo canal → (GPIO, descripción) — alineado con app.py
 CHANNELS = {
-    1: (16, "EV #3 llenado botellón"),
-    2: (19, "Bomba despacho 220V"),
-    # 3: DAÑADO, no incluido
-    4: (22, "EV #2 salida RO / flush"),
-    5: (23, "Lámpara UV"),
-    6: (24, "Generador ozono"),
-    7: (4,  "EV #1 entrada bombas RO"),
-    8: (7,  "Reserva"),
+    1: (16, "Luz publicidad frontal"),
+    2: (19, "Generador ozono"),
+    3: (27, "EV entrada bombas RO"),
+    4: (22, "EV llenado botellón"),
+    5: (23, "EV flush salida"),
+    6: (24, "Libre"),
+    7: (4,  "Libre"),
+    8: (7,  "Libre"),
 }
 
 ACTIVE_HIGH = False   # Módulo es active-LOW (descubierto 2026-05-25)
