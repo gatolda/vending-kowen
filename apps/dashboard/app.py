@@ -95,7 +95,8 @@ FLUSH_TIME = 15.0
 MAX_PRODUCTION_TIME = 300.0  # 5 min safety timeout (producción manual)
 AUTO_FILL_TIMEOUT = 1800.0   # 30 min backstop autollenado (corte real = sensor MÁXIMO; esto solo salta ante falla)
 AUTO_REFILL_COOLDOWN = 180.0 # 3 min mínimo entre llenados auto (anti-rebote); se ignora si el nivel cae bajo el MÍNIMO
-PRESSURE_LOSS_GRACE = 5.0    # seg de pérdida de presión SOSTENIDA antes de abortar (ignora glitches/EMI)
+PRESSURE_LOSS_GRACE = 5.0    # seg sin presión continuos para declarar "sin presión" (ignora glitches/EMI)
+PRESSURE_RECOVER_GRACE = 3.0 # seg con presión continuos para volver a declarar "con presión" (histéresis)
 
 # ============================================
 # ESTADO GLOBAL
@@ -117,6 +118,7 @@ dispense_stop = threading.Event()  # señal para abortar despacho
 
 auto_enabled = False           # modo automático (autollenado por sensores)
 last_auto_fill_end = 0.0       # timestamp del último autollenado (para el cooldown anti-rebote)
+pressure_ok = True             # estado debounced de presión de red (histéresis, lo mantiene pressure_monitor)
 
 # Relés de cada carril (para apagar solo lo propio sin pisar el otro carril)
 PRODUCTION_CHANNELS = [3, 5, 10]
@@ -149,11 +151,19 @@ def init_sensors():
 
 
 def sensor_active(name):
-    """True si el sensor está 'activo' (agua presente / presión OK), False si no, None si no hay lectura."""
+    """True si el sensor está 'activo' (agua presente / presión OK), False si no, None si no hay lectura.
+    Lectura instantánea (raw). Para el presostato, el control usa el estado debounced (pressure_ok)."""
     dev = sensors.get(name)
     if dev is None:
         return None
     return dev.is_pressed == SENSORS[name]["active_when_pressed"]
+
+
+def sensor_state(name):
+    """Estado para mostrar/decidir. El presostato usa el valor debounced (histéresis); el resto, raw."""
+    if name == "PRESOSTATO":
+        return pressure_ok if sensors.get(name) is not None else None
+    return sensor_active(name)
 
 
 def log_event(message, level="info"):
@@ -315,6 +325,37 @@ def run_produce_water():
 # MODO AUTOMÁTICO (autollenado por sensores)
 # ============================================
 
+def pressure_monitor():
+    """Mantiene el estado debounced de presión de red con histéresis.
+    Solo declara 'sin presión' tras PRESSURE_LOSS_GRACE seg sin presión continuos,
+    y solo 'con presión' tras PRESSURE_RECOVER_GRACE seg con presión continuos.
+    Evita que glitches/EMI del contactor hagan flickear el estado."""
+    global pressure_ok
+    low_since = None
+    high_since = None
+    while True:
+        time.sleep(0.5)
+        raw = sensor_active("PRESOSTATO")
+        if raw is None:
+            continue  # sin lectura → mantener el último estado
+        if raw:
+            low_since = None
+            if not pressure_ok:
+                if high_since is None:
+                    high_since = time.time()
+                elif time.time() - high_since >= PRESSURE_RECOVER_GRACE:
+                    pressure_ok = True
+                    log_event("Presión de red restablecida", "ok")
+        else:
+            high_since = None
+            if pressure_ok:
+                if low_since is None:
+                    low_since = time.time()
+                elif time.time() - low_since >= PRESSURE_LOSS_GRACE:
+                    pressure_ok = False
+                    log_event("Presión de red perdida (sostenida)", "warn")
+
+
 def run_auto_production():
     """Producción para autollenado: corre hasta MÁXIMO lleno, timeout, o pérdida de presión.
     Si NO llega al máximo (timeout/sin presión), desactiva el modo auto para no ciclar en seco."""
@@ -339,7 +380,6 @@ def run_auto_production():
 
         # Corte REAL = sensor MÁXIMO. El backstop (30 min) solo salta ante falla.
         start = time.time()
-        no_pressure_since = None  # debounce del presostato (ignora glitches/EMI)
         while time.time() - start < AUTO_FILL_TIMEOUT:
             if stop_event.wait(0.5):
                 return
@@ -348,15 +388,10 @@ def run_auto_production():
                 mins = (time.time() - start) / 60
                 log_event(f"Autollenado: tanque LLENO en {mins:.1f} min, parando", "ok")
                 break
-            # Presostato con debounce: abortar solo si la pérdida de presión es SOSTENIDA
-            if sensor_active("PRESOSTATO") is False:
-                if no_pressure_since is None:
-                    no_pressure_since = time.time()
-                elif time.time() - no_pressure_since >= PRESSURE_LOSS_GRACE:
-                    log_event(f"Autollenado: sin presión sostenida ({PRESSURE_LOSS_GRACE:.0f}s), abortando", "warn")
-                    break
-            else:
-                no_pressure_since = None  # presión OK → resetear el contador
+            # Presostato con histéresis (pressure_ok ya viene debounced del monitor)
+            if not pressure_ok:
+                log_event("Autollenado: sin presión de red (sostenida), abortando", "warn")
+                break
         else:
             log_event(f"Autollenado: backstop {AUTO_FILL_TIMEOUT/60:.0f} min sin llegar a máximo (revisar flotador/fuga)", "warn")
 
@@ -396,7 +431,7 @@ def auto_loop():
         if not below_min and (time.time() - last_auto_fill_end < AUTO_REFILL_COOLDOWN):
             continue
 
-        if sensor_active("PRESOSTATO") is False:
+        if not pressure_ok:  # estado debounced con histéresis
             now = time.time()
             if now - last_no_pressure_log > 30:
                 log_event("Autollenado en espera: tanque no lleno pero sin presión de red", "warn")
@@ -440,8 +475,7 @@ def status():
         "sensors": {
             name: {
                 "label": cfg["label"],
-                "active": (sensors[name].is_pressed == cfg["active_when_pressed"]
-                           if sensors.get(name) else None),
+                "active": sensor_state(name),  # presostato = debounced; resto = raw
                 "text_active": cfg["text_active"],
                 "text_inactive": cfg["text_inactive"],
                 "alert_when_inactive": cfg["alert_when_inactive"],
@@ -551,6 +585,7 @@ def relay_toggle(ch):
 
 if __name__ == "__main__":
     init_gpio()
+    threading.Thread(target=pressure_monitor, daemon=True).start()
     threading.Thread(target=auto_loop, daemon=True).start()
     try:
         app.run(host="0.0.0.0", port=8000, debug=False, threaded=True)
