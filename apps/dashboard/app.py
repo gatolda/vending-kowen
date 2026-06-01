@@ -118,7 +118,8 @@ dispense_stop = threading.Event()  # señal para abortar despacho
 
 auto_enabled = False           # modo automático (autollenado por sensores)
 last_auto_fill_end = 0.0       # timestamp del último autollenado (para el cooldown anti-rebote)
-pressure_ok = True             # estado debounced de presión de red (histéresis, lo mantiene pressure_monitor)
+pressure_ok = True             # estado debounced de presión de red (histéresis, lo mantiene sensor_monitor)
+tank_full = False              # estado latcheado del flotador MÁXIMO para el display (el control usa la lectura raw)
 
 # Relés de cada carril (para apagar solo lo propio sin pisar el otro carril)
 PRODUCTION_CHANNELS = [3, 5, 10]
@@ -160,9 +161,13 @@ def sensor_active(name):
 
 
 def sensor_state(name):
-    """Estado para mostrar/decidir. El presostato usa el valor debounced (histéresis); el resto, raw."""
+    """Estado para MOSTRAR en el dashboard. Presostato = debounced (histéresis);
+    máximo = latcheado (el flotador dispara muy breve); resto = raw.
+    OJO: el control NO usa esto, usa sensor_active() (lectura real-time)."""
     if name == "PRESOSTATO":
         return pressure_ok if sensors.get(name) is not None else None
+    if name == "MAX":
+        return tank_full if sensors.get(name) is not None else None
     return sensor_active(name)
 
 
@@ -325,43 +330,51 @@ def run_produce_water():
 # MODO AUTOMÁTICO (autollenado por sensores)
 # ============================================
 
-def pressure_monitor():
-    """Mantiene el estado debounced de presión de red con histéresis.
-    Solo declara 'sin presión' tras PRESSURE_LOSS_GRACE seg sin presión continuos,
-    y solo 'con presión' tras PRESSURE_RECOVER_GRACE seg con presión continuos.
-    Evita que glitches/EMI del contactor hagan flickear el estado."""
-    global pressure_ok
+def sensor_monitor():
+    """Mantiene estados estables para el DISPLAY (no para el control):
+    - Presostato: histéresis (pérdida PRESSURE_LOSS_GRACE seg / recuperación PRESSURE_RECOVER_GRACE seg)
+      → pressure_ok. Evita que glitches/EMI del contactor flickeen el estado.
+    - Máximo: latch → tank_full. El flotador dispara muy breve; sin latch el dashboard casi nunca
+      lo muestra. Se enciende al tocar 'lleno', se apaga al arrancar un rellenado (run_auto_production)
+      o si el nivel cae al MÍNIMO."""
+    global pressure_ok, tank_full
     low_since = None
     high_since = None
     while True:
         time.sleep(0.5)
+        # --- Presostato con histéresis ---
         raw = sensor_active("PRESOSTATO")
-        if raw is None:
-            continue  # sin lectura → mantener el último estado
-        if raw:
-            low_since = None
-            if not pressure_ok:
-                if high_since is None:
-                    high_since = time.time()
-                elif time.time() - high_since >= PRESSURE_RECOVER_GRACE:
-                    pressure_ok = True
-                    log_event("Presión de red restablecida", "ok")
-        else:
-            high_since = None
-            if pressure_ok:
-                if low_since is None:
-                    low_since = time.time()
-                elif time.time() - low_since >= PRESSURE_LOSS_GRACE:
-                    pressure_ok = False
-                    log_event("Presión de red perdida (sostenida)", "warn")
+        if raw is not None:
+            if raw:
+                low_since = None
+                if not pressure_ok:
+                    if high_since is None:
+                        high_since = time.time()
+                    elif time.time() - high_since >= PRESSURE_RECOVER_GRACE:
+                        pressure_ok = True
+                        log_event("Presión de red restablecida", "ok")
+            else:
+                high_since = None
+                if pressure_ok:
+                    if low_since is None:
+                        low_since = time.time()
+                    elif time.time() - low_since >= PRESSURE_LOSS_GRACE:
+                        pressure_ok = False
+                        log_event("Presión de red perdida (sostenida)", "warn")
+        # --- Latch del flotador máximo (para el display) ---
+        if sensor_active("MAX") is True:
+            tank_full = True
+        elif sensor_active("MIN") is False:  # cayó al mínimo → definitivamente NO lleno
+            tank_full = False
 
 
 def run_auto_production():
     """Producción para autollenado: corre hasta MÁXIMO lleno, timeout, o pérdida de presión.
     Si NO llega al máximo (timeout/sin presión), desactiva el modo auto para no ciclar en seco."""
-    global current_operation, auto_enabled
+    global current_operation, auto_enabled, tank_full
     current_operation = "Autollenado (producción)"
     log_event("Autollenado: producción iniciada", "ok")
+    tank_full = False  # estamos rellenando → el display deja de marcar "lleno" hasta tocar el máximo
     reached_max = False
 
     try:
@@ -585,7 +598,7 @@ def relay_toggle(ch):
 
 if __name__ == "__main__":
     init_gpio()
-    threading.Thread(target=pressure_monitor, daemon=True).start()
+    threading.Thread(target=sensor_monitor, daemon=True).start()
     threading.Thread(target=auto_loop, daemon=True).start()
     try:
         app.run(host="0.0.0.0", port=8000, debug=False, threaded=True)
