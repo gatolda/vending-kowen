@@ -29,6 +29,7 @@ import time
 import threading
 import urllib.request
 import urllib.parse
+import urllib.error
 from datetime import datetime, timezone, timedelta
 
 
@@ -54,6 +55,10 @@ TG_CHAT = os.environ.get("TELEGRAM_CHAT_ID", "")
 OFFLINE_THRESHOLD = float(os.environ.get("OFFLINE_THRESHOLD_S", "300"))
 POLL_INTERVAL = float(os.environ.get("POLL_INTERVAL_S", "30"))
 ALERT_COOLDOWN = float(os.environ.get("ALERT_COOLDOWN_S", "600"))
+
+# URL del dashboard de la Pi (por Tailscale) para mandarle comandos.
+# Default: IP tailnet de la Pi kowen-01. Para varias máquinas, ver nota al pie.
+PI_URL = os.environ.get("PI_DASHBOARD_URL", "http://100.127.73.30:8000").rstrip("/")
 
 # Íconos por nivel de evento
 LEVEL_ICON = {"err": "🔴", "warn": "🟡", "ok": "🟢", "info": "ℹ️"}
@@ -100,6 +105,38 @@ def send_telegram(text):
     except Exception as e:
         print("Telegram error:", e)
         return False
+
+
+# ============================================
+# COMANDOS A LA PI (vía dashboard por Tailscale)
+# ============================================
+
+def pi_post(path, payload=None):
+    """POST a un endpoint del dashboard de la Pi. Devuelve (ok, dict_respuesta)."""
+    url = f"{PI_URL}{path}"
+    data = json.dumps(payload or {}).encode()
+    req = urllib.request.Request(url, data=data, method="POST")
+    req.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return True, json.loads(r.read().decode() or "{}")
+    except urllib.error.HTTPError as e:
+        try:
+            return False, json.loads(e.read().decode() or "{}")
+        except Exception:
+            return False, {"error": f"HTTP {e.code}"}
+    except Exception as e:
+        return False, {"error": f"sin conexión con la Pi ({e})"}
+
+
+def pi_get(path):
+    """GET a un endpoint del dashboard de la Pi. Devuelve (ok, dict_respuesta)."""
+    url = f"{PI_URL}{path}"
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url), timeout=10) as r:
+            return True, json.loads(r.read().decode() or "{}")
+    except Exception as e:
+        return False, {"error": f"sin conexión con la Pi ({e})"}
 
 
 # ============================================
@@ -158,19 +195,83 @@ def build_status_text():
     return "\n".join(out)
 
 
+HELP_TEXT = (
+    "🤖 Comandos:\n"
+    "/status — estado del fleet\n"
+    "/llenar <seg> — despachar recarga (ej: /llenar 5)\n"
+    "/flush — ciclo de flush\n"
+    "/producir — producir agua (llenar tanque)\n"
+    "/auto on|off — modo automático\n"
+    "/stop — 🛑 parar todo (emergencia)\n"
+    "/ayuda — esta ayuda"
+)
+
+
+def handle_auto(arg):
+    """Activa/desactiva el modo auto leyendo primero el estado (el endpoint es toggle)."""
+    ok, st = pi_get("/api/status")
+    if not ok:
+        send_telegram(f"⚠️ No pude leer el estado: {st.get('error','')}")
+        return
+    current = bool(st.get("system", {}).get("auto_enabled"))
+    arg = arg.lower()
+    if arg in ("on", "encender", "activar"):
+        desired = True
+    elif arg in ("off", "apagar", "desactivar"):
+        desired = False
+    else:
+        send_telegram(f"Modo auto está {'ON' if current else 'OFF'}.\nUso: /auto on  |  /auto off")
+        return
+    if desired == current:
+        send_telegram(f"Modo auto ya estaba {'ON' if desired else 'OFF'}")
+        return
+    ok, resp = pi_post("/api/auto/toggle")
+    send_telegram(f"🤖 Modo auto {'ACTIVADO' if desired else 'DESACTIVADO'}"
+                  if ok else f"⚠️ No se pudo: {resp.get('error','')}")
+
+
 def handle_command(text):
-    cmd = text.split()[0] if text.split() else ""
+    parts = text.split()
+    cmd = parts[0] if parts else ""
+
     if cmd in ("/status", "/estado"):
         send_telegram(build_status_text())
+
+    elif cmd in ("/llenar", "/despachar"):
+        if len(parts) < 2:
+            send_telegram("Uso: /llenar <segundos>  (ej: /llenar 5)")
+            return
+        try:
+            seg = int(float(parts[1]))
+        except ValueError:
+            send_telegram("Segundos inválidos. Ej: /llenar 5")
+            return
+        seg = max(1, min(60, seg))  # la Pi también clampea, doble seguro
+        ok, resp = pi_post("/api/operation/fill", {"seconds": seg})
+        send_telegram(f"💧 Despacho iniciado ({seg}s)"
+                      if ok else f"⚠️ No se pudo despachar: {resp.get('error','')}")
+
+    elif cmd == "/flush":
+        ok, resp = pi_post("/api/operation/flush")
+        send_telegram("🔄 Flush iniciado" if ok else f"⚠️ No se pudo: {resp.get('error','')}")
+
+    elif cmd in ("/producir", "/produce"):
+        ok, resp = pi_post("/api/operation/produce")
+        send_telegram("⚗️ Producción iniciada" if ok else f"⚠️ No se pudo: {resp.get('error','')}")
+
+    elif cmd == "/auto":
+        handle_auto(parts[1] if len(parts) > 1 else "")
+
+    elif cmd == "/stop":
+        ok, resp = pi_post("/api/stop")
+        send_telegram("🛑 STOP enviado — todo apagado"
+                      if ok else f"⚠️ Error al parar: {resp.get('error','')}")
+
     elif cmd in ("/help", "/ayuda", "/start", "/comandos"):
-        send_telegram(
-            "🤖 Comandos disponibles:\n"
-            "/status — estado actual del fleet\n"
-            "/ayuda — esta ayuda\n\n"
-            "Además te aviso solo ante eventos (recargas, alertas, máquina offline)."
-        )
+        send_telegram(HELP_TEXT)
+
     else:
-        send_telegram("No entendí 🤔. Probá /status o /ayuda")
+        send_telegram("No entendí 🤔. Probá /ayuda")
 
 
 def tg_get_updates(offset, timeout=25):
