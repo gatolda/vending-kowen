@@ -26,6 +26,7 @@ Config por entorno (.env junto a este archivo):
 import os
 import json
 import time
+import threading
 import urllib.request
 import urllib.parse
 from datetime import datetime, timezone, timedelta
@@ -101,6 +102,105 @@ def send_telegram(text):
         return False
 
 
+# ============================================
+# BOT INTERACTIVO (responde comandos)
+# ============================================
+
+def _fmt_bool(v, yes, no, unknown="?"):
+    if v is True:
+        return yes
+    if v is False:
+        return no
+    return unknown
+
+
+def build_status_text():
+    """Arma el texto de estado del fleet leyendo el último heartbeat de cada máquina."""
+    try:
+        machines = _sb_get("machines?select=id,nombre")
+    except Exception as e:
+        return f"No pude leer el estado: {e}"
+    if not machines:
+        return "No hay máquinas registradas."
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(seconds=OFFLINE_THRESHOLD)).isoformat()
+    cutoff_q = urllib.parse.quote(cutoff, safe="")
+    out = ["📊 Estado del fleet"]
+    for m in machines:
+        mid = m["id"]
+        nombre = m.get("nombre", "")
+        try:
+            recent = _sb_get(f"heartbeats?machine_id=eq.{mid}&ts=gte.{cutoff_q}&select=id&limit=1")
+            online = len(recent) > 0
+            hb = _sb_get(
+                f"heartbeats?machine_id=eq.{mid}"
+                f"&select=tank_full,min_water,pressure_ok,auto_enabled,operation,ts"
+                f"&order=ts.desc&limit=1"
+            )
+        except Exception as e:
+            out.append(f"\n• {nombre} ({mid}): error leyendo ({e})")
+            continue
+
+        out.append(f"\n• {nombre} ({mid}) — {'🟢 online' if online else '🔴 OFFLINE'}")
+        if not hb:
+            out.append("   sin datos todavía")
+            continue
+        h = hb[0]
+        tanque = _fmt_bool(h.get("tank_full"), "✅ lleno", "🔵 no lleno")
+        minimo = _fmt_bool(h.get("min_water"), "con agua", "⚠️ vacío")
+        presion = _fmt_bool(h.get("pressure_ok"), "OK", "⚠️ sin presión")
+        auto = _fmt_bool(h.get("auto_enabled"), "🤖 ON", "OFF")
+        oper = h.get("operation") or "—"
+        ts = (h.get("ts") or "").replace("T", " ")[:19]
+        out.append(f"   Tanque: {tanque} | Mínimo: {minimo} | Presión: {presion}")
+        out.append(f"   Auto: {auto} | Operación: {oper}")
+        out.append(f"   Último dato: {ts}")
+    return "\n".join(out)
+
+
+def handle_command(text):
+    cmd = text.split()[0] if text.split() else ""
+    if cmd in ("/status", "/estado"):
+        send_telegram(build_status_text())
+    elif cmd in ("/help", "/ayuda", "/start", "/comandos"):
+        send_telegram(
+            "🤖 Comandos disponibles:\n"
+            "/status — estado actual del fleet\n"
+            "/ayuda — esta ayuda\n\n"
+            "Además te aviso solo ante eventos (recargas, alertas, máquina offline)."
+        )
+    else:
+        send_telegram("No entendí 🤔. Probá /status o /ayuda")
+
+
+def tg_get_updates(offset, timeout=25):
+    url = f"https://api.telegram.org/bot{TG_TOKEN}/getUpdates?timeout={timeout}"
+    if offset is not None:
+        url += f"&offset={offset}"
+    with urllib.request.urlopen(urllib.request.Request(url), timeout=timeout + 10) as r:
+        return json.load(r)
+
+
+def command_loop():
+    """Escucha comandos por Telegram (long-polling) y responde. Corre en su propio hilo.
+    Solo atiende al chat autorizado (TG_CHAT)."""
+    offset = None
+    while True:
+        try:
+            resp = tg_get_updates(offset, timeout=25)
+            for upd in resp.get("result", []):
+                offset = upd["update_id"] + 1
+                msg = upd.get("message") or upd.get("edited_message") or {}
+                text = (msg.get("text") or "").strip().lower()
+                chat_id = str((msg.get("chat") or {}).get("id", ""))
+                if not text or chat_id != str(TG_CHAT):
+                    continue  # ignorar vacíos y chats no autorizados
+                handle_command(text)
+        except Exception as e:
+            print("command_loop error:", e)
+            time.sleep(5)
+
+
 def main():
     if not (SUPABASE_URL and SUPABASE_KEY):
         raise SystemExit("Faltan SUPABASE_URL / SUPABASE_SERVICE_KEY en el .env")
@@ -126,7 +226,10 @@ def main():
         return True
 
     print(f"Fleet watcher iniciado. Poll cada {POLL_INTERVAL:.0f}s, offline a los {OFFLINE_THRESHOLD:.0f}s.")
-    send_telegram("🤖 Fleet watcher iniciado — vigilando máquinas.")
+    send_telegram("🤖 Fleet watcher iniciado — vigilando máquinas.\nEscribí /status para ver el estado.")
+
+    # Hilo que escucha comandos de Telegram (responde /status, /ayuda)
+    threading.Thread(target=command_loop, daemon=True).start()
 
     while True:
         # ── 1) Eventos nuevos: críticos (warn/err) + notables (ok/info en NOTABLE) ──
