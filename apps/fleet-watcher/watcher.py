@@ -57,6 +57,27 @@ ALERT_COOLDOWN = float(os.environ.get("ALERT_COOLDOWN_S", "600"))
 # Íconos por nivel de evento
 LEVEL_ICON = {"err": "🔴", "warn": "🟡", "ok": "🟢", "info": "ℹ️"}
 
+# Eventos NOTABLES: aunque sean nivel 'ok'/'info', queremos que avisen.
+# Se matchean por substring del mensaje (editá esta lista para sumar/sacar).
+NOTABLE = [
+    "Sistema iniciado",        # arranque del dashboard
+    "Llenado completado",      # recarga despachada
+    "tanque LLENO",            # autollenado completó la producción
+    "Modo automático ACTIVADO",
+]
+
+
+def icon_for(level, msg):
+    if "Llenado" in msg:
+        return "💧"
+    if "tanque LLENO" in msg:
+        return "✅"
+    if "Sistema iniciado" in msg:
+        return "🟢"
+    if "Modo automático" in msg:
+        return "🤖"
+    return LEVEL_ICON.get(level, "🔔")
+
 
 def _sb_get(path):
     """GET a la API REST de Supabase. Devuelve lista de dicts."""
@@ -108,19 +129,25 @@ def main():
     send_telegram("🤖 Fleet watcher iniciado — vigilando máquinas.")
 
     while True:
-        # ── 1) Eventos críticos nuevos ──
+        # ── 1) Eventos nuevos: críticos (warn/err) + notables (ok/info en NOTABLE) ──
         try:
             rows = _sb_get(
                 f"events?select=id,machine_id,level,message,ts"
-                f"&id=gt.{last_id}&level=in.(warn,err)&order=id.asc"
+                f"&id=gt.{last_id}&order=id.asc"
             )
             for ev in rows:
                 last_id = max(last_id, ev["id"])
-                key = f"{ev['machine_id']}:{ev['message']}"
-                if not should_send(key):
-                    continue  # mismo mensaje hace poco → no spamear
-                icon = LEVEL_ICON.get(ev["level"], "•")
-                send_telegram(f"{icon} [{ev['machine_id']}] {ev['message']}")
+                level, msg = ev["level"], ev["message"]
+                is_critical = level in ("warn", "err")
+                is_notable = any(p in msg for p in NOTABLE)
+                if not (is_critical or is_notable):
+                    continue  # evento de rutina → ignorar
+                # Cooldown solo para críticos (que pueden repetirse como estado).
+                # Los notables (recarga, arranque) son discretos → siempre se mandan.
+                if is_critical and not is_notable:
+                    if not should_send(f"{ev['machine_id']}:{msg}"):
+                        continue
+                send_telegram(f"{icon_for(level, msg)} [{ev['machine_id']}] {msg}")
         except Exception as e:
             print("Error chequeando eventos:", e)
 
