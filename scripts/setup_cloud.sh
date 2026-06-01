@@ -2,7 +2,17 @@
 # Setea/rota la SECRET KEY de Supabase en el .env del dashboard, de forma segura.
 # Patrón: input silencioso → validación → backup → replace → restart service.
 # (Basado en el patrón de rotación de secretos del equipo.)
+#
+# Uso (en la Pi, SIN sudo — usa sudo solo para reiniciar el servicio):
+#     bash ~/vending-kowen/scripts/setup_cloud.sh
 set -euo pipefail
+
+# Evitar que se corra con sudo: el .env vive en $HOME del usuario, no en /root
+if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    echo "❌ No corras esto con sudo (el .env va en tu HOME)."
+    echo "   Corré:  bash $0"
+    exit 1
+fi
 
 # ═══════════════════════════════════════════
 # CONFIG
