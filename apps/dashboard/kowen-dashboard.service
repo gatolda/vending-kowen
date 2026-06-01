@@ -1,0 +1,23 @@
+[Unit]
+Description=Kowen Vending Dashboard (control + autollenado)
+# Esperar a tener red antes de levantar el dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kowen
+WorkingDirectory=/home/kowen/vending-kowen/apps/dashboard
+ExecStart=/usr/bin/python3 /home/kowen/vending-kowen/apps/dashboard/app.py
+
+# Reiniciar siempre que se caiga (crash, excepción, etc.)
+Restart=always
+RestartSec=3
+
+# Apagado limpio: app.py captura SIGTERM y apaga todos los relés.
+# Darle margen para que termine el apagado ordenado antes de matar a la fuerza.
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

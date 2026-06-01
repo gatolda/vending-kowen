@@ -20,6 +20,8 @@ import threading
 import time
 import json
 import os
+import signal
+import sys
 
 app = Flask(__name__)
 
@@ -596,7 +598,15 @@ def relay_toggle(ch):
 # MAIN
 # ============================================
 
+def handle_sigterm(signum, frame):
+    """systemd manda SIGTERM al parar/reiniciar el servicio. Por defecto Python no
+    corre el finally con SIGTERM, así que lo convertimos en salida limpia → apaga relés."""
+    log_event("SIGTERM recibido (systemd stop) — apagando relés", "warn")
+    raise SystemExit(0)
+
+
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, handle_sigterm)
     init_gpio()
     threading.Thread(target=sensor_monitor, daemon=True).start()
     threading.Thread(target=auto_loop, daemon=True).start()

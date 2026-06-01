@@ -62,36 +62,39 @@ POST /api/operation/produce  → inicia producción
 POST /api/stop               → emergencia
 ```
 
-## Auto-start en boot (opcional)
+## Auto-start en boot (systemd)
 
-Para que el dashboard arranque solo al encender la Pi:
+El archivo del servicio ya está versionado en el repo: `kowen-dashboard.service`.
+Para instalarlo (una sola vez):
 
 ```bash
-sudo nano /etc/systemd/system/kowen-dashboard.service
-```
+# Copiar el unit file al directorio de systemd
+sudo cp ~/vending-kowen/apps/dashboard/kowen-dashboard.service /etc/systemd/system/
 
-Pegar:
-```ini
-[Unit]
-Description=Kowen Dashboard
-After=network-online.target
+# Recargar systemd, habilitar (arranque en boot) y arrancar ahora
+sudo systemctl daemon-reload
+sudo systemctl enable --now kowen-dashboard
 
-[Service]
-WorkingDirectory=/home/kowen/vending-kowen/apps/dashboard
-ExecStart=/usr/bin/python3 /home/kowen/vending-kowen/apps/dashboard/app.py
-Restart=always
-User=kowen
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Habilitar:
-```bash
-sudo systemctl enable kowen-dashboard
-sudo systemctl start kowen-dashboard
+# Verificar
 sudo systemctl status kowen-dashboard
 ```
+
+Operación diaria:
+```bash
+sudo systemctl restart kowen-dashboard   # reinicio limpio (apaga relés ordenadamente vía SIGTERM)
+sudo systemctl stop kowen-dashboard      # parar
+sudo systemctl start kowen-dashboard     # arrancar
+journalctl -u kowen-dashboard -f         # ver logs en vivo
+```
+
+Tras actualizar el código (`git pull`), aplicar con:
+```bash
+sudo systemctl restart kowen-dashboard
+```
+
+> Nota: ya no hace falta correr `python3 app.py` a mano ni usar `pkill`.
+> El servicio captura SIGTERM y apaga todos los relés antes de salir.
+> El dashboard arranca solo tras un corte de luz o reinicio de la Pi.
 
 ## Roadmap
 
