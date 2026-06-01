@@ -23,7 +23,12 @@ import os
 import signal
 import sys
 
+import cloud_sync  # sincronización best-effort a Supabase (no bloquea el control local)
+
 app = Flask(__name__)
+
+# Cada cuánto mandar un heartbeat de estado a la nube (seg)
+HEARTBEAT_INTERVAL = 60.0
 
 # ============================================
 # CONFIGURACIÓN HARDWARE
@@ -185,6 +190,8 @@ def log_event(message, level="info"):
     if len(events) > 100:
         events.pop(0)
     print(f"[{event['timestamp']}] {level.upper()}: {message}")
+    # Espejo a la nube (best-effort, no bloquea)
+    cloud_sync.push_event(level, message)
 
 
 def get_uptime():
@@ -425,6 +432,22 @@ def run_auto_production():
             log_event("Modo auto DESACTIVADO (producción no completó el llenado)", "warn")
 
 
+def heartbeat_loop():
+    """Manda el estado actual a la nube cada HEARTBEAT_INTERVAL seg (best-effort)."""
+    while True:
+        time.sleep(HEARTBEAT_INTERVAL)
+        try:
+            cloud_sync.push_heartbeat({
+                "tank_full": tank_full,
+                "min_water": sensor_active("MIN"),
+                "pressure_ok": pressure_ok,
+                "auto_enabled": auto_enabled,
+                "operation": current_operation or dispense_active,
+            })
+        except Exception:
+            pass  # nunca dejar que el sync afecte nada
+
+
 def auto_loop():
     """Loop de control del modo automático (mantener tanque lleno).
     Arranca apenas el MÁXIMO deja de marcar lleno y llena hasta el MÁXIMO.
@@ -608,8 +631,13 @@ def handle_sigterm(signum, frame):
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, handle_sigterm)
     init_gpio()
+    if cloud_sync.start():
+        log_event(f"Sync a Supabase activo (máquina {cloud_sync.MACHINE_ID})", "ok")
+    else:
+        log_event("Sync a Supabase desactivado (sin credenciales)", "info")
     threading.Thread(target=sensor_monitor, daemon=True).start()
     threading.Thread(target=auto_loop, daemon=True).start()
+    threading.Thread(target=heartbeat_loop, daemon=True).start()
     try:
         app.run(host="0.0.0.0", port=8000, debug=False, threaded=True)
     finally:
