@@ -22,11 +22,11 @@ import queue
 import threading
 import urllib.request
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
-MACHINE_ID = os.environ.get("MACHINE_ID", "kowen-01")
-
-ENABLED = bool(SUPABASE_URL and SUPABASE_KEY)
+# Config — se completa en start() leyendo el entorno (que app.py puebla desde el .env)
+SUPABASE_URL = ""
+SUPABASE_KEY = ""
+MACHINE_ID = "kowen-01"
+ENABLED = False
 
 # Cola de escrituras pendientes. Si se llena (sin internet mucho rato), se
 # descartan las más nuevas sin romper nada (el log local sigue siendo la verdad).
@@ -60,7 +60,12 @@ def _worker():
 
 
 def start():
-    """Arranca el worker en background. Devuelve True si el sync está activo."""
+    """Lee las credenciales del entorno y arranca el worker. Devuelve True si quedó activo."""
+    global SUPABASE_URL, SUPABASE_KEY, MACHINE_ID, ENABLED
+    SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+    MACHINE_ID = os.environ.get("MACHINE_ID", "kowen-01")
+    ENABLED = bool(SUPABASE_URL and SUPABASE_KEY)
     if not ENABLED:
         return False
     threading.Thread(target=_worker, daemon=True).start()

@@ -25,6 +25,25 @@ import sys
 
 import cloud_sync  # sincronización best-effort a Supabase (no bloquea el control local)
 
+
+def _load_dotenv(path):
+    """Carga un .env simple (KEY=VALUE por línea) en os.environ. Sin dependencias.
+    Las variables ya presentes en el entorno tienen prioridad (no se pisan)."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, val = line.partition("=")
+                os.environ.setdefault(key.strip(), val.strip())
+    except FileNotFoundError:
+        pass
+
+
+# Cargar credenciales del .env (junto a este archivo) antes de usarlas
+_load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+
 app = Flask(__name__)
 
 # Cada cuánto mandar un heartbeat de estado a la nube (seg)

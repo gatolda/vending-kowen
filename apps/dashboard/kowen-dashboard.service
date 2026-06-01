@@ -8,8 +8,7 @@ Wants=network-online.target
 Type=simple
 User=kowen
 WorkingDirectory=/home/kowen/vending-kowen/apps/dashboard
-# Credenciales de Supabase (fuera del repo, NO versionado). El '-' = no fallar si no existe.
-EnvironmentFile=-/etc/kowen-dashboard.env
+# Las credenciales de Supabase las carga app.py desde apps/dashboard/.env (gitignored).
 ExecStart=/usr/bin/python3 /home/kowen/vending-kowen/apps/dashboard/app.py
 
 # Reiniciar siempre que se caiga (crash, excepción, etc.)
