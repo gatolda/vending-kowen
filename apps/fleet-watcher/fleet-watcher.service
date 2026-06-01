@@ -1,15 +1,14 @@
 [Unit]
-# Fleet watcher — alertas Telegram. Corre en el VPS.
-# ⚠️ AJUSTAR antes de instalar: User= y las rutas (según el usuario del VPS).
+# Fleet watcher — alertas Telegram. Corre en el VPS iagrow-vps (usuario kowen).
 Description=Kowen Fleet Watcher (alertas Telegram)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=CAMBIAR_USUARIO
-WorkingDirectory=/home/CAMBIAR_USUARIO/vending-kowen/apps/fleet-watcher
-ExecStart=/usr/bin/python3 /home/CAMBIAR_USUARIO/vending-kowen/apps/fleet-watcher/watcher.py
+User=kowen
+WorkingDirectory=/home/kowen/proyectos/vending-kowen/apps/fleet-watcher
+ExecStart=/usr/bin/python3 /home/kowen/proyectos/vending-kowen/apps/fleet-watcher/watcher.py
 Restart=always
 RestartSec=10
 
