@@ -29,7 +29,6 @@ import time
 import threading
 import urllib.request
 import urllib.parse
-import urllib.error
 from datetime import datetime, timezone, timedelta
 
 
@@ -56,9 +55,9 @@ OFFLINE_THRESHOLD = float(os.environ.get("OFFLINE_THRESHOLD_S", "300"))
 POLL_INTERVAL = float(os.environ.get("POLL_INTERVAL_S", "30"))
 ALERT_COOLDOWN = float(os.environ.get("ALERT_COOLDOWN_S", "600"))
 
-# URL del dashboard de la Pi (por Tailscale) para mandarle comandos.
-# Default: IP tailnet de la Pi kowen-01. Para varias máquinas, ver nota al pie.
-PI_URL = os.environ.get("PI_DASHBOARD_URL", "http://100.127.73.30:8000").rstrip("/")
+# Máquina a la que se dirigen los comandos de Telegram (mientras hay una sola).
+# Para varias máquinas, más adelante el comando puede incluir el id.
+DEFAULT_MACHINE_ID = os.environ.get("DEFAULT_MACHINE_ID", "kowen-01")
 
 # Íconos por nivel de evento
 LEVEL_ICON = {"err": "🔴", "warn": "🟡", "ok": "🟢", "info": "ℹ️"}
@@ -108,35 +107,57 @@ def send_telegram(text):
 
 
 # ============================================
-# COMANDOS A LA PI (vía dashboard por Tailscale)
+# COMANDOS A LA PI (vía cola en Supabase — la Pi los lee y ejecuta)
 # ============================================
 
-def pi_post(path, payload=None):
-    """POST a un endpoint del dashboard de la Pi. Devuelve (ok, dict_respuesta)."""
-    url = f"{PI_URL}{path}"
-    data = json.dumps(payload or {}).encode()
-    req = urllib.request.Request(url, data=data, method="POST")
+def queue_command(machine_id, command, args=None):
+    """Inserta un comando en la cola de Supabase. Devuelve el id de la fila (o None)."""
+    url = f"{SUPABASE_URL}/rest/v1/commands"
+    payload = {"machine_id": machine_id, "command": command, "args": args or {}}
+    req = urllib.request.Request(url, data=json.dumps(payload).encode(), method="POST")
+    req.add_header("apikey", SUPABASE_KEY)
+    req.add_header("Authorization", f"Bearer {SUPABASE_KEY}")
     req.add_header("Content-Type", "application/json")
+    req.add_header("Prefer", "return=representation")  # para recuperar el id
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
-            return True, json.loads(r.read().decode() or "{}")
-    except urllib.error.HTTPError as e:
+            rows = json.load(r)
+            return rows[0]["id"] if rows else None
+    except Exception as e:
+        print("queue_command error:", e)
+        return None
+
+
+def wait_command_result(cmd_id, timeout=15):
+    """Espera hasta que la Pi marque el comando done/error. Devuelve (status, result)."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        time.sleep(1.5)
         try:
-            return False, json.loads(e.read().decode() or "{}")
+            rows = _sb_get(f"commands?id=eq.{cmd_id}&select=status,result")
         except Exception:
-            return False, {"error": f"HTTP {e.code}"}
-    except Exception as e:
-        return False, {"error": f"sin conexión con la Pi ({e})"}
+            continue
+        if rows and rows[0]["status"] != "pending":
+            return rows[0]["status"], rows[0].get("result") or ""
+    return "pending", "sin confirmación todavía (la máquina puede estar offline)"
 
 
-def pi_get(path):
-    """GET a un endpoint del dashboard de la Pi. Devuelve (ok, dict_respuesta)."""
-    url = f"{PI_URL}{path}"
-    try:
-        with urllib.request.urlopen(urllib.request.Request(url), timeout=10) as r:
-            return True, json.loads(r.read().decode() or "{}")
-    except Exception as e:
-        return False, {"error": f"sin conexión con la Pi ({e})"}
+def run_command(command, label, args=None):
+    """Encola un comando y reporta el resultado a Telegram (en un hilo, para no bloquear)."""
+    cmd_id = queue_command(DEFAULT_MACHINE_ID, command, args)
+    if cmd_id is None:
+        send_telegram(f"⚠️ No pude encolar el comando ({label})")
+        return
+
+    def _report():
+        status, result = wait_command_result(cmd_id)
+        if status == "done":
+            send_telegram(f"✅ {label}: {result}")
+        elif status == "error":
+            send_telegram(f"⚠️ {label}: {result}")
+        else:
+            send_telegram(f"⏳ {label}: {result}")
+    threading.Thread(target=_report, daemon=True).start()
 
 
 # ============================================
@@ -207,29 +228,6 @@ HELP_TEXT = (
 )
 
 
-def handle_auto(arg):
-    """Activa/desactiva el modo auto leyendo primero el estado (el endpoint es toggle)."""
-    ok, st = pi_get("/api/status")
-    if not ok:
-        send_telegram(f"⚠️ No pude leer el estado: {st.get('error','')}")
-        return
-    current = bool(st.get("system", {}).get("auto_enabled"))
-    arg = arg.lower()
-    if arg in ("on", "encender", "activar"):
-        desired = True
-    elif arg in ("off", "apagar", "desactivar"):
-        desired = False
-    else:
-        send_telegram(f"Modo auto está {'ON' if current else 'OFF'}.\nUso: /auto on  |  /auto off")
-        return
-    if desired == current:
-        send_telegram(f"Modo auto ya estaba {'ON' if desired else 'OFF'}")
-        return
-    ok, resp = pi_post("/api/auto/toggle")
-    send_telegram(f"🤖 Modo auto {'ACTIVADO' if desired else 'DESACTIVADO'}"
-                  if ok else f"⚠️ No se pudo: {resp.get('error','')}")
-
-
 def handle_command(text):
     parts = text.split()
     cmd = parts[0] if parts else ""
@@ -247,25 +245,29 @@ def handle_command(text):
             send_telegram("Segundos inválidos. Ej: /llenar 5")
             return
         seg = max(1, min(60, seg))  # la Pi también clampea, doble seguro
-        ok, resp = pi_post("/api/operation/fill", {"seconds": seg})
-        send_telegram(f"💧 Despacho iniciado ({seg}s)"
-                      if ok else f"⚠️ No se pudo despachar: {resp.get('error','')}")
+        send_telegram(f"📨 Enviando: despachar {seg}s…")
+        run_command("fill", f"Despacho {seg}s", {"seconds": seg})
 
     elif cmd == "/flush":
-        ok, resp = pi_post("/api/operation/flush")
-        send_telegram("🔄 Flush iniciado" if ok else f"⚠️ No se pudo: {resp.get('error','')}")
+        send_telegram("📨 Enviando: flush…")
+        run_command("flush", "Flush")
 
     elif cmd in ("/producir", "/produce"):
-        ok, resp = pi_post("/api/operation/produce")
-        send_telegram("⚗️ Producción iniciada" if ok else f"⚠️ No se pudo: {resp.get('error','')}")
+        send_telegram("📨 Enviando: producir…")
+        run_command("produce", "Producción")
 
     elif cmd == "/auto":
-        handle_auto(parts[1] if len(parts) > 1 else "")
+        arg = (parts[1] if len(parts) > 1 else "").lower()
+        if arg in ("on", "encender", "activar"):
+            run_command("auto_on", "Modo auto ON")
+        elif arg in ("off", "apagar", "desactivar"):
+            run_command("auto_off", "Modo auto OFF")
+        else:
+            send_telegram("Uso: /auto on  |  /auto off")
 
     elif cmd == "/stop":
-        ok, resp = pi_post("/api/stop")
-        send_telegram("🛑 STOP enviado — todo apagado"
-                      if ok else f"⚠️ Error al parar: {resp.get('error','')}")
+        send_telegram("📨 Enviando STOP…")
+        run_command("stop", "🛑 STOP")
 
     elif cmd in ("/help", "/ayuda", "/start", "/comandos"):
         send_telegram(HELP_TEXT)

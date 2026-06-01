@@ -504,6 +504,110 @@ def auto_loop():
 
 
 # ============================================
+# ACCIONES (compartidas por endpoints HTTP y cola de comandos)
+# Cada una devuelve (ok: bool, mensaje: str)
+# ============================================
+
+def start_dispense(seconds):
+    global dispense_thread
+    if dispense_active is not None:
+        return False, f"Despacho en curso: {dispense_active}"
+    seconds = max(1, min(60, int(float(seconds))))
+    dispense_stop.clear()
+    dispense_thread = threading.Thread(target=run_fill_bottle, args=(seconds,), daemon=True)
+    dispense_thread.start()
+    return True, f"Despacho iniciado ({seconds}s)"
+
+
+def start_flush():
+    global operation_thread
+    if current_operation is not None:
+        return False, f"Operación en curso: {current_operation}"
+    stop_event.clear()
+    operation_thread = threading.Thread(target=run_flush, daemon=True)
+    operation_thread.start()
+    return True, "Flush iniciado"
+
+
+def start_produce():
+    global operation_thread
+    if current_operation is not None:
+        return False, f"Operación en curso: {current_operation}"
+    stop_event.clear()
+    operation_thread = threading.Thread(target=run_produce_water, daemon=True)
+    operation_thread.start()
+    return True, "Producción iniciada"
+
+
+def do_stop():
+    global auto_enabled
+    log_event("STOP solicitado", "warn")
+    auto_enabled = False   # emergencia corta también el modo automático
+    stop_event.set()       # corta producción
+    dispense_stop.set()    # corta despacho
+    all_relays_off()       # apaga TODO (ambos carriles)
+    log_event("Todos los relés apagados", "ok")
+    return True, "Todo apagado"
+
+
+def set_auto(enabled):
+    global auto_enabled
+    if enabled and not auto_enabled:
+        auto_enabled = True
+        log_event("Modo automático ACTIVADO", "ok")
+    elif not enabled and auto_enabled:
+        auto_enabled = False
+        log_event("Modo automático DESACTIVADO", "warn")
+        stop_event.set()   # detiene producción auto en curso si la hay
+    return True, f"Modo auto {'ON' if enabled else 'OFF'}"
+
+
+# ============================================
+# COLA DE COMANDOS (desde Supabase, escritos por el bot Telegram del VPS)
+# ============================================
+
+COMMAND_POLL_INTERVAL = 3.0
+
+
+def dispatch_command(cmd, args):
+    """Ejecuta un comando de la cola. Devuelve (ok, mensaje)."""
+    if cmd == "fill":
+        return start_dispense(args.get("seconds", 5))
+    if cmd == "flush":
+        return start_flush()
+    if cmd == "produce":
+        return start_produce()
+    if cmd == "stop":
+        return do_stop()
+    if cmd == "auto_on":
+        return set_auto(True)
+    if cmd == "auto_off":
+        return set_auto(False)
+    return False, f"Comando desconocido: {cmd}"
+
+
+def command_poller():
+    """Consulta Supabase por comandos pendientes para esta máquina y los ejecuta.
+    Best-effort: si no hay sync/credenciales, fetch devuelve [] y no hace nada."""
+    while True:
+        time.sleep(COMMAND_POLL_INTERVAL)
+        try:
+            cmds = cloud_sync.fetch_pending_commands()
+        except Exception as e:
+            print("command_poller fetch error:", e)
+            continue
+        for c in cmds:
+            cmd = (c.get("command") or "").lower()
+            args = c.get("args") or {}
+            try:
+                ok, msg = dispatch_command(cmd, args)
+            except Exception as e:
+                ok, msg = False, f"Error ejecutando: {e}"
+            log_event(f"Comando remoto: {cmd} → {msg}", "info" if ok else "warn")
+            cloud_sync.complete_command(c["id"], "done" if ok else "error", msg)
+
+
+# ============================================
 # ENDPOINTS
 # ============================================
 
@@ -545,69 +649,32 @@ def status():
 
 @app.route("/api/operation/fill", methods=["POST"])
 def op_fill():
-    # Carril DESPACHO: independiente de la producción. Puede correr en paralelo con la osmosis.
-    global dispense_thread
-
-    if dispense_active is not None:
-        return jsonify({"error": f"Despacho en curso: {dispense_active}"}), 409
-
     data = request.get_json() or {}
-    seconds = float(data.get("seconds", 5))
-    seconds = max(1, min(60, seconds))
-
-    dispense_stop.clear()
-    dispense_thread = threading.Thread(target=run_fill_bottle, args=(seconds,), daemon=True)
-    dispense_thread.start()
-    return jsonify({"status": "started", "operation": f"fill_{seconds}s"})
+    ok, msg = start_dispense(data.get("seconds", 5))
+    return jsonify({"status": "started", "message": msg}) if ok else (jsonify({"error": msg}), 409)
 
 
 @app.route("/api/operation/flush", methods=["POST"])
 def op_flush():
-    global operation_thread
-
-    if current_operation is not None:
-        return jsonify({"error": f"Operación en curso: {current_operation}"}), 409
-
-    stop_event.clear()
-    operation_thread = threading.Thread(target=run_flush, daemon=True)
-    operation_thread.start()
-    return jsonify({"status": "started", "operation": "flush"})
+    ok, msg = start_flush()
+    return jsonify({"status": "started", "message": msg}) if ok else (jsonify({"error": msg}), 409)
 
 
 @app.route("/api/operation/produce", methods=["POST"])
 def op_produce():
-    global operation_thread
-
-    if current_operation is not None:
-        return jsonify({"error": f"Operación en curso: {current_operation}"}), 409
-
-    stop_event.clear()
-    operation_thread = threading.Thread(target=run_produce_water, daemon=True)
-    operation_thread.start()
-    return jsonify({"status": "started", "operation": "produce"})
+    ok, msg = start_produce()
+    return jsonify({"status": "started", "message": msg}) if ok else (jsonify({"error": msg}), 409)
 
 
 @app.route("/api/stop", methods=["POST"])
 def op_stop():
-    global auto_enabled
-    log_event("STOP solicitado", "warn")
-    auto_enabled = False  # emergencia corta también el modo automático
-    stop_event.set()      # corta producción
-    dispense_stop.set()   # corta despacho
-    all_relays_off()      # apaga TODO (ambos carriles)
-    log_event("Todos los relés apagados", "ok")
+    do_stop()
     return jsonify({"status": "stopped"})
 
 
 @app.route("/api/auto/toggle", methods=["POST"])
 def auto_toggle():
-    global auto_enabled
-    auto_enabled = not auto_enabled
-    if auto_enabled:
-        log_event("Modo automático ACTIVADO", "ok")
-    else:
-        log_event("Modo automático DESACTIVADO", "warn")
-        stop_event.set()  # detiene producción auto en curso si la hay
+    set_auto(not auto_enabled)
     return jsonify({"auto_enabled": auto_enabled})
 
 
@@ -652,6 +719,7 @@ if __name__ == "__main__":
     init_gpio()
     if cloud_sync.start():
         log_event(f"Sync a Supabase activo (máquina {cloud_sync.MACHINE_ID})", "ok")
+        threading.Thread(target=command_poller, daemon=True).start()  # comandos remotos
     else:
         log_event("Sync a Supabase desactivado (sin credenciales)", "info")
     threading.Thread(target=sensor_monitor, daemon=True).start()

@@ -21,6 +21,7 @@ import time
 import queue
 import threading
 import urllib.request
+from datetime import datetime, timezone
 
 # Config — se completa en start() leyendo el entorno (que app.py puebla desde el .env)
 SUPABASE_URL = ""
@@ -96,3 +97,48 @@ def push_heartbeat(state):
         _q.put_nowait(("heartbeats", payload))
     except queue.Full:
         pass
+
+
+# ── Cola de comandos remotos (la Pi los lee y ejecuta) ──
+
+def _auth_headers(req):
+    req.add_header("apikey", SUPABASE_KEY)
+    req.add_header("Authorization", f"Bearer {SUPABASE_KEY}")
+    req.add_header("Content-Type", "application/json")
+
+
+def fetch_pending_commands():
+    """Devuelve la lista de comandos pendientes para esta máquina (o [] si falla/deshabilitado)."""
+    if not ENABLED:
+        return []
+    url = (f"{SUPABASE_URL}/rest/v1/commands"
+           f"?machine_id=eq.{MACHINE_ID}&status=eq.pending&order=id.asc"
+           f"&select=id,command,args")
+    req = urllib.request.Request(url)
+    _auth_headers(req)
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return json.load(r)
+    except Exception as e:
+        print("fetch_pending_commands error:", e)
+        return []
+
+
+def complete_command(cmd_id, status, result=""):
+    """Marca un comando como done/error con su resultado."""
+    if not ENABLED:
+        return
+    url = f"{SUPABASE_URL}/rest/v1/commands?id=eq.{cmd_id}"
+    payload = {
+        "status": status,
+        "result": (result or "")[:500],
+        "done_at": datetime.now(timezone.utc).isoformat(),
+    }
+    req = urllib.request.Request(url, data=json.dumps(payload).encode(), method="PATCH")
+    _auth_headers(req)
+    req.add_header("Prefer", "return=minimal")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.status
+    except Exception as e:
+        print("complete_command error:", e)
