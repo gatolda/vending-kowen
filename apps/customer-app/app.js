@@ -79,7 +79,9 @@ async function showHome(session) {
   if (MACHINE_ID) {
     show('machine-card'); hide('no-machine');
     $('machine-name').textContent = MACHINE_ID;
-    $('redeem-btn').onclick = () => redeem(session);
+    document.querySelectorAll('.liter-btn').forEach(b => {
+      b.onclick = () => redeem(session, parseInt(b.dataset.liters, 10));
+    });
     fetchMachineStatus(MACHINE_ID);
   } else {
     hide('machine-card'); show('no-machine');
@@ -182,7 +184,8 @@ async function refreshCredits(userId) {
   if (error) { $('credits').textContent = '–'; return; }
   const balance = (data || []).reduce((s, m) => s + m.delta, 0);
   $('credits').textContent = balance;
-  $('redeem-btn').disabled = balance < 1 || !MACHINE_ID;
+  const canRedeem = balance >= 1 && !!MACHINE_ID;
+  document.querySelectorAll('.liter-btn').forEach(b => { b.disabled = !canRedeem; });
 }
 
 async function refreshHistory() {
@@ -241,9 +244,10 @@ async function fetchMachineStatus(machineId) {
 // ============================================
 // CANJE (vía función serverless, que valida y despacha)
 // ============================================
-async function redeem(session) {
-  $('redeem-btn').disabled = true;
-  setMsg('redeem-msg', 'Procesando…', '');
+async function redeem(session, liters) {
+  const btns = document.querySelectorAll('.liter-btn');
+  btns.forEach(b => b.disabled = true);
+  setMsg('redeem-msg', `Procesando recarga de ${liters} L…`, '');
   try {
     const res = await fetch('/api/redeem', {
       method: 'POST',
@@ -251,21 +255,21 @@ async function redeem(session) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ machine_id: MACHINE_ID }),
+      body: JSON.stringify({ machine_id: MACHINE_ID, liters }),
     });
     const data = await res.json();
     if (!res.ok) {
       setMsg('redeem-msg', data.error || 'No se pudo canjear.', 'err');
-      $('redeem-btn').disabled = false;
+      btns.forEach(b => b.disabled = false);
       return;
     }
     const extra = data.loyalty ? ' 🎁 ¡+1 gratis por fidelidad!' : '';
-    setMsg('redeem-msg', '✅ ¡Recarga en camino! Acercá tu bidón.' + extra, 'ok');
-    await refreshCredits(session.user.id);
+    setMsg('redeem-msg', `✅ ¡${liters} L en camino! Acercá tu bidón.` + extra, 'ok');
+    await refreshCredits(session.user.id);   // re-evalúa el estado de los botones
     await refreshHistory();
   } catch (e) {
     setMsg('redeem-msg', 'Error de red. Intentá de nuevo.', 'err');
-    $('redeem-btn').disabled = false;
+    btns.forEach(b => b.disabled = false);
   }
 }
 

@@ -11,8 +11,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const FREE_SECONDS = parseInt(process.env.FREE_RECHARGE_SECONDS || '10', 10);
-const FREE_LITERS = parseFloat(process.env.FREE_RECHARGE_LITERS || '20');
+const LITERS_ALLOWED = [5, 10, 20];
+const SECONDS_PER_LITER = parseFloat(process.env.SECONDS_PER_LITER || '2');  // fallback por tiempo hasta el caudalímetro
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
@@ -29,6 +29,8 @@ export default async function handler(req, res) {
   // 2) Validar máquina
   const machineId = (req.body && req.body.machine_id) || null;
   if (!machineId) return res.status(400).json({ error: 'Falta la máquina (escaneá el QR)' });
+  const liters = parseInt((req.body && req.body.liters) || 0, 10);
+  if (!LITERS_ALLOWED.includes(liters)) return res.status(400).json({ error: 'Elegí 5, 10 o 20 litros' });
 
   try {
     // 3) Saldo de créditos del usuario
@@ -41,14 +43,14 @@ export default async function handler(req, res) {
     // 4) Insertar el comando de despacho en la cola (la Pi lo ejecuta)
     const { data: cmd, error: cmdErr } = await sb
       .from('commands')
-      .insert({ machine_id: machineId, command: 'fill', args: { seconds: FREE_SECONDS, liters: FREE_LITERS } })
+      .insert({ machine_id: machineId, command: 'fill', args: { liters, seconds: Math.round(liters * SECONDS_PER_LITER) } })
       .select('id').single();
     if (cmdErr) throw cmdErr;
 
     // 5) Registrar el canje
     const { data: redem, error: redErr } = await sb
       .from('redemptions')
-      .insert({ user_id: user.id, machine_id: machineId, liters: FREE_LITERS, command_id: cmd.id, status: 'pending' })
+      .insert({ user_id: user.id, machine_id: machineId, liters, command_id: cmd.id, status: 'pending' })
       .select('id').single();
     if (redErr) throw redErr;
 
