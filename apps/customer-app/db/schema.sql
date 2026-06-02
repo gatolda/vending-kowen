@@ -123,3 +123,34 @@ drop trigger if exists on_command_status_change on public.commands;
 create trigger on_command_status_change
   after update of status on public.commands
   for each row execute function public.sync_redemption_status();
+
+-- ============================================================
+-- Billetera (saldo en CLP). Saldo = sum(amount_clp) del usuario.
+-- Carga vía MercadoPago (webhook). Consumo al despachar (cuando haya caudalímetro).
+-- ============================================================
+create table wallet_movements (
+  id          bigint generated always as identity primary key,
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  amount_clp  int  not null,            -- + carga / - consumo
+  reason      text not null,            -- topup | charge | refund | bonus
+  ref         text,                     -- id de pago MercadoPago, id de canje, etc.
+  created_at  timestamptz default now()
+);
+create index idx_wallet_movements_user on wallet_movements(user_id);
+
+create table payments (
+  id           bigint generated always as identity primary key,
+  user_id      uuid references auth.users(id) on delete cascade,
+  provider     text not null default 'mercadopago',
+  provider_ref text,                    -- payment id / preference id
+  amount_clp   int  not null,
+  status       text not null default 'pending',  -- pending | approved | rejected
+  created_at   timestamptz default now()
+);
+create index idx_payments_user on payments(user_id);
+create unique index idx_payments_provider_ref on payments(provider_ref) where provider_ref is not null;
+
+alter table wallet_movements enable row level security;
+alter table payments         enable row level security;
+create policy "wallet propio - select" on wallet_movements for select using (auth.uid() = user_id);
+create policy "pagos propios - select" on payments for select using (auth.uid() = user_id);
