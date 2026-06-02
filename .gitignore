@@ -35,6 +35,7 @@ logs/
 secrets.json
 *.pem
 *.key
+.mcp.json
 
 # Local config / data
 config.local.json

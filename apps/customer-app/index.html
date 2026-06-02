@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="manifest" href="/manifest.json">
+  <title>Kowen · Recargas</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <div class="brand"><span>💧</span> Kowen</div>
+    <button id="logout-btn" class="link-btn" style="display:none">Salir</button>
+  </header>
+
+  <main id="app">
+    <!-- Pantalla de carga -->
+    <section id="loading" class="card">
+      <p>Cargando…</p>
+    </section>
+
+    <!-- Pantalla de login -->
+    <section id="login" class="card" style="display:none">
+      <h1>Recargas de agua</h1>
+      <p class="muted" id="login-machine"></p>
+      <p>Registrate o entrá para canjear tu recarga gratis.</p>
+
+      <button id="google-btn" class="btn btn-light">Continuar con Google</button>
+
+      <div class="divider"><span>o</span></div>
+
+      <label>Tu email</label>
+      <input id="email" type="email" inputmode="email" placeholder="tucorreo@ejemplo.cl" autocomplete="email">
+      <button id="email-btn" class="btn btn-blue">Enviarme el enlace</button>
+      <p id="login-msg" class="msg"></p>
+    </section>
+
+    <!-- Pantalla principal (logueado) -->
+    <section id="home" style="display:none">
+      <div class="card">
+        <p class="muted">Hola <span id="user-name">👋</span></p>
+        <div class="credits">
+          <span class="credits-num" id="credits">–</span>
+          <span class="credits-lbl">recargas gratis disponibles</span>
+        </div>
+      </div>
+
+      <div class="card" id="machine-card">
+        <p class="muted">Máquina</p>
+        <p class="machine-id" id="machine-name">—</p>
+        <button id="redeem-btn" class="btn btn-blue">💧 Canjear recarga gratis</button>
+        <p id="redeem-msg" class="msg"></p>
+      </div>
+
+      <div class="card" id="no-machine" style="display:none">
+        <p>Escaneá el QR de una máquina Kowen para canjear tu recarga.</p>
+      </div>
+
+      <div class="card">
+        <p class="muted">Tus canjes</p>
+        <div id="history"><p class="muted small">Sin canjes todavía.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

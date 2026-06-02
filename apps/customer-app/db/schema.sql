@@ -50,18 +50,23 @@ create index idx_redemptions_user on redemptions(user_id);
 -- ============================================================
 -- Trigger: al registrarse un usuario, crear su perfil + regalo de bienvenida
 -- ============================================================
-create or replace function handle_new_user()
+-- search_path fijo + tablas calificadas (hardening: evita search_path mutable)
+create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
+set search_path = ''
 as $$
 begin
-  insert into profiles (id, telefono) values (new.id, new.phone);
-  insert into credit_movements (user_id, delta, reason)
+  insert into public.profiles (id, telefono) values (new.id, new.phone);
+  insert into public.credit_movements (user_id, delta, reason)
     values (new.id, 1, 'welcome');   -- 1 recarga gratis de bienvenida (ajustable)
   return new;
 end;
 $$;
+
+-- El trigger corre la función; nadie debe poder invocarla vía RPC
+revoke execute on function public.handle_new_user() from anon, authenticated, public;
 
 create trigger on_auth_user_created
   after insert on auth.users
