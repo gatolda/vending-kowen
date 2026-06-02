@@ -73,6 +73,8 @@ async function showHome(session) {
   const user = session.user;
   $('user-name').textContent = user.email || '👋';
 
+  await loadProfile(user);
+
   // Máquina (del QR)
   if (MACHINE_ID) {
     show('machine-card'); hide('no-machine');
@@ -84,6 +86,32 @@ async function showHome(session) {
 
   await refreshCredits(user.id);
   await refreshHistory();
+}
+
+async function loadProfile(user) {
+  const { data } = await sb.from('profiles').select('nombre, telefono').eq('id', user.id).maybeSingle();
+  if (data?.nombre) $('user-name').textContent = data.nombre;
+  if (!data || !data.telefono) {
+    // Perfil incompleto → pedir nombre + teléfono
+    show('profile-card');
+    if (data?.nombre) $('prof-nombre').value = data.nombre;
+    $('prof-save').onclick = () => saveProfile(user.id);
+  } else {
+    hide('profile-card');
+  }
+}
+
+async function saveProfile(userId) {
+  const nombre = $('prof-nombre').value.trim();
+  const telefono = $('prof-telefono').value.trim();
+  if (!telefono) { setMsg('prof-msg', 'Poné tu teléfono.', 'err'); return; }
+  $('prof-save').disabled = true;
+  const { error } = await sb.from('profiles').update({ nombre, telefono }).eq('id', userId);
+  $('prof-save').disabled = false;
+  if (error) { setMsg('prof-msg', error.message, 'err'); return; }
+  setMsg('prof-msg', '✅ ¡Gracias!', 'ok');
+  if (nombre) $('user-name').textContent = nombre;
+  setTimeout(() => hide('profile-card'), 800);
 }
 
 async function refreshCredits(userId) {

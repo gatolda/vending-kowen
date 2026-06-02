@@ -98,3 +98,28 @@ create policy "canjes propios - select" on redemptions
 
 -- promo_codes: sin policies para clientes → solo accesible por service role
 -- (la validación del código se hace en la Edge Function).
+
+-- ============================================================
+-- Sincronizar estado del canje con el del comando.
+-- Cuando la Pi marca el comando done/error, el canje refleja ese estado.
+-- ============================================================
+create or replace function public.sync_redemption_status()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.redemptions
+    set status = new.status
+  where command_id = new.id and status is distinct from new.status;
+  return new;
+end;
+$$;
+
+revoke execute on function public.sync_redemption_status() from anon, authenticated, public;
+
+drop trigger if exists on_command_status_change on public.commands;
+create trigger on_command_status_change
+  after update of status on public.commands
+  for each row execute function public.sync_redemption_status();
