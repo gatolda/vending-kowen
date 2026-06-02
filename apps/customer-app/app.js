@@ -84,8 +84,33 @@ async function showHome(session) {
     hide('machine-card'); show('no-machine');
   }
 
+  $('promo-btn').onclick = () => redeemCode(session);
+
   await refreshCredits(user.id);
   await refreshHistory();
+}
+
+async function redeemCode(session) {
+  const code = $('promo-code').value.trim();
+  if (!code) { setMsg('promo-msg', 'Escribí un código.', 'err'); return; }
+  $('promo-btn').disabled = true;
+  setMsg('promo-msg', 'Validando…', '');
+  try {
+    const res = await fetch('/api/redeem-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    $('promo-btn').disabled = false;
+    if (!res.ok) { setMsg('promo-msg', data.error || 'No se pudo.', 'err'); return; }
+    setMsg('promo-msg', `✅ ¡+${data.granted} recarga(s) gratis!`, 'ok');
+    $('promo-code').value = '';
+    await refreshCredits(session.user.id);
+  } catch (e) {
+    $('promo-btn').disabled = false;
+    setMsg('promo-msg', 'Error de red. Intentá de nuevo.', 'err');
+  }
 }
 
 async function loadProfile(user) {
