@@ -86,8 +86,45 @@ async function showHome(session) {
 
   $('promo-btn').onclick = () => redeemCode(session);
 
+  // Botones de carga de saldo
+  document.querySelectorAll('.amt-btn').forEach(b => {
+    b.onclick = () => topup(parseInt(b.dataset.amount, 10), session);
+  });
+
   await refreshCredits(user.id);
+  await refreshWallet(user.id);
   await refreshHistory();
+
+  // Volvió del checkout de MercadoPago
+  if (params.get('pago') === 'ok') {
+    setMsg('topup-msg', '✅ Pago recibido. Actualizando saldo…', 'ok');
+    setTimeout(() => refreshWallet(user.id), 3000);
+    setTimeout(() => refreshWallet(user.id), 8000);
+  } else if (params.get('pago') === 'error') {
+    setMsg('topup-msg', 'El pago no se completó.', 'err');
+  }
+}
+
+async function refreshWallet(userId) {
+  const { data } = await sb.from('wallet_movements').select('amount_clp');
+  const saldo = (data || []).reduce((s, m) => s + m.amount_clp, 0);
+  $('saldo').textContent = '$' + saldo.toLocaleString('es-CL');
+}
+
+async function topup(amount, session) {
+  setMsg('topup-msg', 'Redirigiendo a MercadoPago…', '');
+  try {
+    const res = await fetch('/api/topup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ amount }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.init_point) { setMsg('topup-msg', data.error || 'No se pudo iniciar el pago.', 'err'); return; }
+    location.href = data.init_point;   // ir al checkout de MercadoPago
+  } catch (e) {
+    setMsg('topup-msg', 'Error de red. Intentá de nuevo.', 'err');
+  }
 }
 
 async function redeemCode(session) {

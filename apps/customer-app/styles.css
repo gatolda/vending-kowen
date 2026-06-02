@@ -61,6 +61,8 @@ input {
 .msg { font-size: 14px; margin-top: 10px; min-height: 18px; }
 .msg.ok { color: #047857; }
 .msg.err { color: #b91c1c; }
+.amounts { display: flex; gap: 8px; margin-top: 12px; }
+.amounts .btn { flex: 1; margin-top: 0; padding: 12px 0; }
 .hist-row {
   display: flex; justify-content: space-between;
   padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px;
