@@ -191,7 +191,7 @@ async function refreshHistory() {
     .limit(10);
   const el = $('history');
   if (!data || !data.length) {
-    el.innerHTML = '<p class="muted small">Sin canjes todavía.</p>';
+    el.innerHTML = '<p class="empty">Sin canjes todavía.</p>';
     return;
   }
   el.innerHTML = data.map(r => {

@@ -1,0 +1,12 @@
+{
+  "name": "Kowen · Agua",
+  "short_name": "Kowen",
+  "description": "Recargas de agua purificada",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e3f3f4",
+  "theme_color": "#06b6d4",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

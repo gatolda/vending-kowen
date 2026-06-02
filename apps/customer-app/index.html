@@ -3,95 +3,129 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#2563eb">
+  <meta name="theme-color" content="#06b6d4">
   <link rel="manifest" href="/manifest.json">
-  <title>Kowen · Recargas</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <title>Kowen · Agua</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+  <div class="bg-grain"></div>
+
   <header>
-    <div class="brand"><span>💧</span> Kowen</div>
-    <button id="logout-btn" class="link-btn" style="display:none">Salir</button>
+    <div class="brand">
+      <span class="brand-drop">💧</span>
+      <span class="brand-name">kowen</span>
+    </div>
+    <button id="logout-btn" class="ghost-btn" style="display:none">Salir</button>
   </header>
 
   <main id="app">
-    <!-- Pantalla de carga -->
-    <section id="loading" class="card">
+    <!-- Carga -->
+    <section id="loading" class="loader">
+      <div class="ripple"></div>
       <p>Cargando…</p>
     </section>
 
-    <!-- Pantalla de login -->
-    <section id="login" class="card" style="display:none">
-      <h1>Recargas de agua</h1>
-      <p class="muted" id="login-machine"></p>
-      <p>Registrate o entrá para canjear tu recarga gratis.</p>
+    <!-- Login -->
+    <section id="login" class="screen" style="display:none">
+      <div class="login-hero">
+        <div class="login-drop">💧</div>
+        <h1>Agua pura,<br>en un toque.</h1>
+        <p class="lead">Registrate y obtené tu primera recarga <strong>gratis</strong>.</p>
+        <p class="machine-tag" id="login-machine"></p>
+      </div>
 
-      <button id="google-btn" class="btn btn-light">Continuar con Google</button>
-
-      <div class="divider"><span>o</span></div>
-
-      <label>Tu email</label>
-      <input id="email" type="email" inputmode="email" placeholder="tucorreo@ejemplo.cl" autocomplete="email">
-      <button id="email-btn" class="btn btn-blue">Enviarme el enlace</button>
-      <p id="login-msg" class="msg"></p>
+      <div class="panel">
+        <button id="google-btn" class="btn btn-ghost">
+          <span class="g">G</span> Continuar con Google
+        </button>
+        <div class="divider"><span>o con tu email</span></div>
+        <label>Email</label>
+        <input id="email" type="email" inputmode="email" placeholder="tucorreo@ejemplo.cl" autocomplete="email">
+        <button id="email-btn" class="btn btn-primary">Enviarme el enlace</button>
+        <p id="login-msg" class="msg"></p>
+      </div>
     </section>
 
-    <!-- Pantalla principal (logueado) -->
-    <section id="home" style="display:none">
-      <div class="card">
-        <p class="muted">Hola <span id="user-name">👋</span></p>
-        <div class="credits">
-          <span class="credits-num" id="credits">–</span>
-          <span class="credits-lbl">recargas gratis disponibles</span>
-        </div>
-      </div>
+    <!-- Home -->
+    <section id="home" class="screen" style="display:none">
 
-      <div class="card">
-        <p class="muted">💳 Saldo en tu billetera</p>
-        <div class="credits">
-          <span class="credits-num" id="saldo">$0</span>
-          <span class="credits-lbl">cargá saldo para tus recargas</span>
-        </div>
-        <div class="amounts">
-          <button class="btn btn-light amt-btn" data-amount="2000">$2.000</button>
-          <button class="btn btn-light amt-btn" data-amount="5000">$5.000</button>
-          <button class="btn btn-light amt-btn" data-amount="10000">$10.000</button>
-        </div>
-        <p id="topup-msg" class="msg"></p>
-      </div>
-
-      <div class="card" id="profile-card" style="display:none">
-        <p class="muted">📲 Completá tu perfil para recibir promos</p>
+      <!-- Perfil incompleto -->
+      <div class="card prompt" id="profile-card" style="display:none">
+        <p class="card-kicker">📲 Completá tu perfil</p>
+        <p class="card-sub">Dejanos tu teléfono para avisarte de promos.</p>
         <label>Nombre</label>
         <input id="prof-nombre" type="text" placeholder="Tu nombre">
         <label>Teléfono (WhatsApp)</label>
         <input id="prof-telefono" type="tel" inputmode="tel" placeholder="+56 9 1234 5678">
-        <button id="prof-save" class="btn btn-blue">Guardar</button>
+        <button id="prof-save" class="btn btn-primary">Guardar</button>
         <p id="prof-msg" class="msg"></p>
       </div>
 
-      <div class="card" id="machine-card">
-        <p class="muted">Máquina</p>
-        <p class="machine-id" id="machine-name">—</p>
-        <button id="redeem-btn" class="btn btn-blue">💧 Canjear recarga gratis</button>
+      <!-- Hero: recargas gratis -->
+      <section class="hero">
+        <div class="hero-glow"></div>
+        <p class="hero-hi">Hola <span id="user-name">👋</span></p>
+        <div class="hero-count">
+          <span class="hero-num" id="credits">–</span>
+          <span class="hero-lbl">recargas<br>gratis</span>
+        </div>
+      </section>
+
+      <!-- Máquina + canje -->
+      <div class="card machine" id="machine-card">
+        <div class="machine-head">
+          <span class="machine-dot"></span>
+          <div>
+            <p class="card-kicker">Máquina conectada</p>
+            <p class="machine-id" id="machine-name">—</p>
+          </div>
+        </div>
+        <button id="redeem-btn" class="btn btn-primary btn-lg">Canjear recarga gratis</button>
         <p id="redeem-msg" class="msg"></p>
       </div>
 
-      <div class="card" id="no-machine" style="display:none">
-        <p>Escaneá el QR de una máquina Kowen para canjear tu recarga.</p>
+      <div class="card hint" id="no-machine" style="display:none">
+        <span class="hint-icon">📷</span>
+        <p>Escaneá el código QR de una máquina Kowen para canjear tu recarga.</p>
       </div>
 
+      <!-- Billetera -->
+      <div class="card wallet">
+        <div class="wallet-top">
+          <p class="card-kicker">Saldo en tu billetera</p>
+          <span class="wallet-num" id="saldo">$0</span>
+        </div>
+        <div class="amounts">
+          <button class="btn btn-soft amt-btn" data-amount="2000">$2.000</button>
+          <button class="btn btn-soft amt-btn" data-amount="5000">$5.000</button>
+          <button class="btn btn-soft amt-btn" data-amount="10000">$10.000</button>
+        </div>
+        <p id="topup-msg" class="msg"></p>
+      </div>
+
+      <!-- Código de promo -->
       <div class="card">
-        <p class="muted">🎟️ ¿Tenés un código de promo?</p>
-        <input id="promo-code" type="text" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off">
-        <button id="promo-btn" class="btn btn-light">Canjear código</button>
+        <p class="card-kicker">🎟️ ¿Tenés un código?</p>
+        <div class="promo-row">
+          <input id="promo-code" type="text" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off">
+          <button id="promo-btn" class="btn btn-soft">Canjear</button>
+        </div>
         <p id="promo-msg" class="msg"></p>
       </div>
 
+      <!-- Historial -->
       <div class="card">
-        <p class="muted">Tus canjes</p>
-        <div id="history"><p class="muted small">Sin canjes todavía.</p></div>
+        <p class="card-kicker">Tus canjes</p>
+        <div id="history"><p class="empty">Sin canjes todavía.</p></div>
       </div>
+
+      <p class="foot">Kowen · agua purificada</p>
     </section>
   </main>
 
