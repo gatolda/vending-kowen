@@ -162,12 +162,24 @@ input:focus { outline: none; border-color: var(--aqua-400); box-shadow: 0 0 0 4p
 .liters-label { margin-bottom: 11px; }
 .liters { display: flex; gap: 9px; }
 .liter-btn {
-  flex: 1; margin-top: 0; padding: 16px 0; font-size: 18px;
+  flex: 1; margin-top: 0; padding: 13px 0; gap: 1px; flex-direction: column;
   font-family: var(--display); font-weight: 700; letter-spacing: -.01em;
   background: #fff; color: var(--aqua-700); border: 1.6px solid rgba(6,182,212,.35); box-shadow: none;
 }
+.liter-btn .lt { font-size: 18px; }
+.liter-btn .lp { font-size: 12px; font-weight: 600; opacity: .6; }
 .liter-btn:hover { background: rgba(6,182,212,.08); border-color: var(--aqua-400); }
 .liter-btn:active { background: var(--aqua-500); color: #fff; border-color: var(--aqua-500); }
+
+/* ---------- Packs ---------- */
+.pack-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+.pack-row:last-of-type { border-bottom: none; }
+.pack-info { display: flex; flex-direction: column; gap: 3px; }
+.pack-name { font-family: var(--display); font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.pack-save { font-size: 12px; color: var(--muted); }
+.pack-tag { font-family: var(--body); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #fff; background: var(--aqua-500); padding: 2px 7px; border-radius: 999px; }
+.pack-best .pack-name { color: var(--aqua-700); }
+.pack-btn { width: auto; margin-top: 0; padding: 11px 18px; font-family: var(--display); font-weight: 800; white-space: nowrap; }
 
 /* ---------- Hint sin máquina ---------- */
 .hint { display: flex; align-items: center; gap: 14px; }

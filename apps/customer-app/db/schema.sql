@@ -145,6 +145,8 @@ create table payments (
   provider_ref text,                    -- payment id / preference id
   amount_clp   int  not null,
   status       text not null default 'pending',  -- pending | approved | rejected
+  kind         text not null default 'topup',    -- topup ($) | pack (recargas)
+  credits      int  not null default 0,          -- recargas que otorga si es pack
   created_at   timestamptz default now()
 );
 create index idx_payments_user on payments(user_id);

@@ -34,16 +34,21 @@ export default async function handler(req, res) {
     const { data: updated } = await sb.from('payments')
       .update({ status: 'approved', provider_ref: String(paymentId) })
       .eq('id', ourId).eq('status', 'pending')
-      .select('user_id, amount_clp');
+      .select('user_id, amount_clp, kind, credits');
     if (!updated || !updated.length) return res.status(200).json({ already: true });
 
     const row = updated[0];
-    await sb.from('wallet_movements').insert({
-      user_id: row.user_id,
-      amount_clp: row.amount_clp,
-      reason: 'topup',
-      ref: String(paymentId),
-    });
+    if (row.kind === 'pack') {
+      // Pack: acreditar recargas (créditos)
+      await sb.from('credit_movements').insert({
+        user_id: row.user_id, delta: row.credits, reason: 'pack', ref: String(paymentId),
+      });
+    } else {
+      // Carga de saldo: acreditar dinero en la billetera
+      await sb.from('wallet_movements').insert({
+        user_id: row.user_id, amount_clp: row.amount_clp, reason: 'topup', ref: String(paymentId),
+      });
+    }
     return res.status(200).json({ ok: true });
   } catch (e) {
     // Responder 200 para que MP no reintente infinito por un error nuestro

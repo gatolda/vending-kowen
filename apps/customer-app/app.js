@@ -94,15 +94,21 @@ async function showHome(session) {
     b.onclick = () => topup(parseInt(b.dataset.amount, 10), session);
   });
 
+  // Botones de packs
+  document.querySelectorAll('.pack-btn').forEach(b => {
+    b.onclick = () => buyPack(b.dataset.pack, session);
+  });
+
   await refreshCredits(user.id);
   await refreshWallet(user.id);
   await refreshHistory();
 
   // Volvió del checkout de MercadoPago
   if (params.get('pago') === 'ok') {
-    setMsg('topup-msg', '✅ Pago recibido. Actualizando saldo…', 'ok');
-    setTimeout(() => refreshWallet(user.id), 3000);
-    setTimeout(() => refreshWallet(user.id), 8000);
+    setMsg('topup-msg', '✅ Pago recibido. Actualizando…', 'ok');
+    const refresh = () => { refreshWallet(user.id); refreshCredits(user.id); refreshHistory(); };
+    setTimeout(refresh, 3000);
+    setTimeout(refresh, 8000);
   } else if (params.get('pago') === 'error') {
     setMsg('topup-msg', 'El pago no se completó.', 'err');
   }
@@ -127,6 +133,22 @@ async function topup(amount, session) {
     location.href = data.init_point;   // ir al checkout de MercadoPago
   } catch (e) {
     setMsg('topup-msg', 'Error de red. Intentá de nuevo.', 'err');
+  }
+}
+
+async function buyPack(packId, session) {
+  setMsg('pack-msg', 'Redirigiendo a MercadoPago…', '');
+  try {
+    const res = await fetch('/api/buy-pack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ pack: packId }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.init_point) { setMsg('pack-msg', data.error || 'No se pudo iniciar la compra.', 'err'); return; }
+    location.href = data.init_point;   // ir al checkout de MercadoPago
+  } catch (e) {
+    setMsg('pack-msg', 'Error de red. Intentá de nuevo.', 'err');
   }
 }
 
