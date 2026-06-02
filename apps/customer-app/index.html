@@ -77,14 +77,26 @@
         </div>
       </section>
 
+      <!-- Fidelidad -->
+      <div class="card loyalty">
+        <div class="loyalty-top">
+          <span class="card-kicker">🎁 Fidelidad</span>
+          <span class="loyalty-text" id="loyalty-text">—</span>
+        </div>
+        <div class="loyalty-bar"><div class="loyalty-fill" id="loyalty-fill"></div></div>
+      </div>
+
+      <!-- Sello de confianza -->
+      <p class="trust">💧 Agua purificada · ósmosis inversa + luz UV</p>
+
       <!-- Máquina + canje -->
       <div class="card machine" id="machine-card">
         <div class="machine-head">
-          <span class="machine-dot"></span>
-          <div>
-            <p class="card-kicker">Máquina conectada</p>
+          <div class="machine-id-wrap">
+            <p class="card-kicker">Máquina</p>
             <p class="machine-id" id="machine-name">—</p>
           </div>
+          <span class="mstatus" id="mstatus"><span class="mstatus-dot"></span><span id="mstatus-txt">…</span></span>
         </div>
         <button id="redeem-btn" class="btn btn-primary btn-lg">Canjear recarga gratis</button>
         <p id="redeem-msg" class="msg"></p>
@@ -121,8 +133,21 @@
 
       <!-- Historial -->
       <div class="card">
-        <p class="card-kicker">Tus canjes</p>
+        <div class="hist-head">
+          <p class="card-kicker">Tus canjes</p>
+          <span class="hist-total" id="hist-total"></span>
+        </div>
         <div id="history"><p class="empty">Sin canjes todavía.</p></div>
+      </div>
+
+      <!-- Cómo funciona -->
+      <div class="card howto">
+        <p class="card-kicker">Cómo funciona</p>
+        <ol class="steps">
+          <li><span class="step-n">1</span> Escaneá el QR de la máquina</li>
+          <li><span class="step-n">2</span> Canjeá una recarga o pagá con tu saldo</li>
+          <li><span class="step-n">3</span> Acercá tu bidón y llenalo 💧</li>
+        </ol>
       </div>
 
       <p class="foot">Kowen · agua purificada</p>

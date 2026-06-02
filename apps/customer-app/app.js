@@ -80,6 +80,7 @@ async function showHome(session) {
     show('machine-card'); hide('no-machine');
     $('machine-name').textContent = MACHINE_ID;
     $('redeem-btn').onclick = () => redeem(session);
+    fetchMachineStatus(MACHINE_ID);
   } else {
     hide('machine-card'); show('no-machine');
   }
@@ -187,14 +188,20 @@ async function refreshCredits(userId) {
 async function refreshHistory() {
   const { data } = await sb.from('redemptions')
     .select('machine_id, liters, status, created_at')
-    .order('created_at', { ascending: false })
-    .limit(10);
+    .order('created_at', { ascending: false });
+  const rows = data || [];
+
+  // Total de litros (canjes completados) + fidelidad
+  const totalL = rows.filter(r => r.status === 'done').reduce((s, r) => s + (Number(r.liters) || 0), 0);
+  $('hist-total').textContent = totalL > 0 ? `${totalL} L 💧` : '';
+  updateLoyalty(rows.length);
+
   const el = $('history');
-  if (!data || !data.length) {
+  if (!rows.length) {
     el.innerHTML = '<p class="empty">Sin canjes todavía.</p>';
     return;
   }
-  el.innerHTML = data.map(r => {
+  el.innerHTML = rows.slice(0, 10).map(r => {
     const fecha = (r.created_at || '').replace('T', ' ').slice(0, 16);
     const cls = r.status === 'done' ? 'badge-done' : r.status === 'error' ? 'badge-error' : 'badge-pending';
     return `<div class="hist-row">
@@ -202,6 +209,33 @@ async function refreshHistory() {
       <span class="badge ${cls}">${r.status}</span>
     </div>`;
   }).join('');
+}
+
+// Fidelidad: cada 10 canjes, 1 gratis (debe coincidir con LOYALTY_EVERY del backend)
+function updateLoyalty(count) {
+  const N = 10;
+  const inCycle = count % N;
+  $('loyalty-fill').style.width = (count > 0 && inCycle === 0 ? 100 : (inCycle / N * 100)) + '%';
+  if (count === 0) {
+    $('loyalty-text').textContent = `Canjeá ${N} y ganás 1 gratis`;
+  } else if (inCycle === 0) {
+    $('loyalty-text').textContent = '¡Ganaste 1 gratis! 🎉';
+  } else {
+    $('loyalty-text').textContent = `Te ${N - inCycle === 1 ? 'falta' : 'faltan'} ${N - inCycle} para 1 gratis`;
+  }
+}
+
+async function fetchMachineStatus(machineId) {
+  try {
+    const r = await fetch('/api/machine-status?m=' + encodeURIComponent(machineId));
+    const s = await r.json();
+    const el = $('mstatus'), txt = $('mstatus-txt');
+    if (s.ready) { el.className = 'mstatus ok'; txt.textContent = 'Lista'; }
+    else if (s.online) { el.className = 'mstatus ok'; txt.textContent = 'En línea'; }
+    else { el.className = 'mstatus off'; txt.textContent = 'Fuera de servicio'; }
+  } catch (e) {
+    $('mstatus-txt').textContent = '—';
+  }
 }
 
 // ============================================
@@ -225,7 +259,8 @@ async function redeem(session) {
       $('redeem-btn').disabled = false;
       return;
     }
-    setMsg('redeem-msg', '✅ ¡Recarga en camino! Acercá tu bidón a la máquina.', 'ok');
+    const extra = data.loyalty ? ' 🎁 ¡+1 gratis por fidelidad!' : '';
+    setMsg('redeem-msg', '✅ ¡Recarga en camino! Acercá tu bidón.' + extra, 'ok');
     await refreshCredits(session.user.id);
     await refreshHistory();
   } catch (e) {

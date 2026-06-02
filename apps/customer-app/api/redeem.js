@@ -58,7 +58,18 @@ export default async function handler(req, res) {
       .insert({ user_id: user.id, delta: -1, reason: 'redeem', ref: String(redem.id) });
     if (decErr) throw decErr;
 
-    return res.status(200).json({ ok: true, remaining: balance - 1, redemption_id: redem.id });
+    // 7) Fidelidad: cada N canjes, 1 recarga gratis de regalo
+    const LOYALTY_EVERY = 10;
+    const { count } = await sb.from('redemptions')
+      .select('id', { count: 'exact', head: true }).eq('user_id', user.id);
+    let loyalty = false;
+    if (count && count % LOYALTY_EVERY === 0) {
+      await sb.from('credit_movements')
+        .insert({ user_id: user.id, delta: 1, reason: 'loyalty', ref: `cada${LOYALTY_EVERY}` });
+      loyalty = true;
+    }
+
+    return res.status(200).json({ ok: true, remaining: balance - 1, loyalty, redemption_id: redem.id });
   } catch (e) {
     return res.status(500).json({ error: 'Error procesando el canje: ' + (e.message || e) });
   }
