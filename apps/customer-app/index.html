@@ -107,9 +107,16 @@
         <p id="redeem-msg" class="msg"></p>
       </div>
 
-      <div class="card hint" id="no-machine" style="display:none">
-        <span class="hint-icon">📷</span>
-        <p>Escaneá el código QR de una máquina Kowen para canjear tu recarga.</p>
+      <div class="card" id="no-machine" style="display:none">
+        <div class="hint">
+          <span class="hint-icon">📷</span>
+          <p>Escaneá el QR de una máquina Kowen, o ingresá su código:</p>
+        </div>
+        <div class="promo-row" style="margin-top:14px;">
+          <input id="machine-code" type="text" inputmode="numeric" placeholder="Código de máquina" autocomplete="off">
+          <button id="machine-code-btn" class="btn btn-soft">Ir</button>
+        </div>
+        <p id="machine-code-msg" class="msg"></p>
       </div>
 
       <!-- Billetera -->

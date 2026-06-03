@@ -85,6 +85,7 @@ async function showHome(session) {
     fetchMachineStatus(MACHINE_ID);
   } else {
     hide('machine-card'); show('no-machine');
+    $('machine-code-btn').onclick = resolveMachineCode;
   }
 
   $('promo-btn').onclick = () => redeemCode(session);
@@ -247,6 +248,26 @@ function updateLoyalty(count) {
     $('loyalty-text').textContent = '¡Ganaste 1 gratis! 🎉';
   } else {
     $('loyalty-text').textContent = `Te ${N - inCycle === 1 ? 'falta' : 'faltan'} ${N - inCycle} para 1 gratis`;
+  }
+}
+
+async function resolveMachineCode() {
+  const code = $('machine-code').value.trim();
+  if (!code) { setMsg('machine-code-msg', 'Ingresá un código.', 'err'); return; }
+  $('machine-code-btn').disabled = true;
+  setMsg('machine-code-msg', 'Buscando…', '');
+  try {
+    const r = await fetch('/api/resolve-code?code=' + encodeURIComponent(code));
+    const d = await r.json();
+    if (!r.ok) {
+      setMsg('machine-code-msg', d.error || 'Código no encontrado.', 'err');
+      $('machine-code-btn').disabled = false;
+      return;
+    }
+    location.href = '?m=' + encodeURIComponent(d.id);  // recargar con la máquina seleccionada
+  } catch (e) {
+    setMsg('machine-code-msg', 'Error de red. Intentá de nuevo.', 'err');
+    $('machine-code-btn').disabled = false;
   }
 }
 
