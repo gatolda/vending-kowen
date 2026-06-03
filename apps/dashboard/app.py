@@ -121,6 +121,7 @@ FLUSH_TIME = 15.0
 MAX_PRODUCTION_TIME = 300.0  # 5 min safety timeout (producción manual)
 AUTO_FILL_TIMEOUT = 1800.0   # 30 min backstop autollenado (corte real = sensor MÁXIMO; esto solo salta ante falla)
 AUTO_REFILL_COOLDOWN = 180.0 # 3 min mínimo entre llenados auto (anti-rebote); se ignora si el nivel cae bajo el MÍNIMO
+MAX_NOT_FULL_GRACE = 60.0    # seg que el MÁXIMO debe leer "no lleno" CONTINUO antes de rellenar (anti-titileo del flotador)
 PRESSURE_LOSS_GRACE = 5.0    # seg sin presión continuos para declarar "sin presión" (ignora glitches/EMI)
 PRESSURE_RECOVER_GRACE = 3.0 # seg con presión continuos para volver a declarar "con presión" (histéresis)
 
@@ -475,16 +476,29 @@ def auto_loop():
     El MÍNIMO es solo alarma, no control normal."""
     global last_auto_fill_end
     last_no_pressure_log = 0.0
+    max_low_since = None   # desde cuándo el MÁXIMO lee "no lleno" de forma continua (anti-titileo)
     while True:
         time.sleep(2)
         if not auto_enabled or current_operation is not None:
+            max_low_since = None
             continue
 
         if sensor_active("MAX") is not False:
-            continue  # lleno (o sin lectura) → nada que hacer
+            max_low_since = None   # lleno (o sin lectura) → resetear el cronómetro
+            continue
 
-        # No lleno → querer rellenar. Respetar cooldown salvo emergencia (bajo el mínimo).
+        # MÁXIMO leyó "no lleno" → arrancar/seguir el cronómetro anti-titileo
+        if max_low_since is None:
+            max_low_since = time.time()
+
         below_min = (sensor_active("MIN") is False)
+
+        # Anti-titileo: exigir "no lleno" SOSTENIDO antes de rellenar (salvo emergencia bajo el mínimo).
+        # Filtra los parpadeos del flotador que disparaban ciclos de 0.0 min.
+        if not below_min and (time.time() - max_low_since < MAX_NOT_FULL_GRACE):
+            continue
+
+        # Cooldown anti-rebote (salvo emergencia).
         if not below_min and (time.time() - last_auto_fill_end < AUTO_REFILL_COOLDOWN):
             continue
 
@@ -501,6 +515,7 @@ def auto_loop():
         stop_event.clear()
         run_auto_production()
         last_auto_fill_end = time.time()
+        max_low_since = None
 
 
 # ============================================
