@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kowen · Presentación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e3f3f4; --ink:#07262c; --muted:#5a7e85; --surface:#fff;
+  --a700:#0e7490; --a600:#0891b2; --a500:#06b6d4; --a400:#22d3ee; --mint:#5eead4;
+  --line:rgba(7,38,44,.10);
+  --display:'Bricolage Grotesque',sans-serif; --body:'Hanken Grotesk',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--body);color:var(--ink);background:var(--bg)}
+
+/* Deck horizontal */
+.deck{display:flex;height:100vh;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+.deck::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100vw;height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:7vh 8vw;position:relative;overflow:hidden}
+
+/* Fondos */
+.slide.light{background:
+  radial-gradient(900px 600px at 90% -10%,rgba(34,211,238,.30),transparent 58%),
+  radial-gradient(700px 520px at -10% 110%,rgba(94,234,212,.26),transparent 55%),var(--bg)}
+.slide.dark{color:#eafdff;background:
+  radial-gradient(700px 500px at 85% 10%,rgba(94,234,212,.30),transparent 60%),
+  linear-gradient(145deg,#063a44,#0e7490 55%,#0891b2)}
+.slide.dark .muted{color:rgba(234,253,255,.72)}
+.slide.dark .chip{background:rgba(255,255,255,.14);color:#eafdff}
+
+/* Animación al entrar */
+.slide .anim{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
+.slide.in .anim{opacity:1;transform:none}
+.slide .anim:nth-child(2){transition-delay:.06s}.slide .anim:nth-child(3){transition-delay:.12s}
+.slide .anim:nth-child(4){transition-delay:.18s}.slide .anim:nth-child(5){transition-delay:.24s}
+.slide .anim:nth-child(6){transition-delay:.30s}
+
+/* Tipografía */
+.kicker{font-family:var(--body);font-weight:700;font-size:clamp(12px,1.5vw,15px);text-transform:uppercase;letter-spacing:.14em;color:var(--a600);margin-bottom:18px}
+.slide.dark .kicker{color:var(--mint)}
+h1{font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-height:1.02;font-size:clamp(40px,7vw,92px)}
+h2{font-family:var(--display);font-weight:800;letter-spacing:-.025em;line-height:1.05;font-size:clamp(30px,5vw,60px)}
+.lead{font-size:clamp(17px,2.2vw,26px);line-height:1.5;color:var(--muted);max-width:30ch;margin-top:22px}
+.slide.dark .lead{color:rgba(234,253,255,.85)}
+p{line-height:1.55}
+.chip{display:inline-block;font-family:var(--body);font-weight:700;font-size:13px;background:rgba(6,182,212,.12);color:var(--a700);padding:6px 14px;border-radius:999px}
+
+/* Listas / grid */
+.rows{margin-top:30px;display:flex;flex-direction:column;gap:16px;max-width:34ch}
+.row{display:flex;gap:14px;align-items:flex-start;font-size:clamp(15px,1.9vw,20px)}
+.row .ic{flex:none;font-size:24px;line-height:1}
+.grid{margin-top:34px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:780px}
+.gcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 10px 30px rgba(8,51,68,.07)}
+.slide.dark .gcard{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);box-shadow:none}
+.gcard h3{font-family:var(--display);font-weight:700;font-size:19px;margin-bottom:6px}
+.gcard p{font-size:14.5px;color:var(--muted)}
+.slide.dark .gcard p{color:rgba(234,253,255,.78)}
+
+/* Arquitectura */
+.flow{display:flex;align-items:center;gap:18px;margin-top:38px;flex-wrap:wrap}
+.node{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.2);border-radius:18px;padding:20px 22px;text-align:center;min-width:150px}
+.node .big{font-size:30px}.node .t{font-family:var(--display);font-weight:700;margin-top:8px}.node .s{font-size:12.5px;color:rgba(234,253,255,.7);margin-top:3px}
+.arrow{font-size:28px;color:var(--mint)}
+
+/* Métricas */
+.stats{display:flex;gap:42px;margin-top:36px;flex-wrap:wrap}
+.stat .n{font-family:var(--display);font-weight:800;font-size:clamp(34px,5vw,60px);color:var(--a500);letter-spacing:-.02em;line-height:1}
+.slide.dark .stat .n{color:var(--mint)}
+.stat .l{font-size:14px;color:var(--muted);margin-top:8px;max-width:18ch}
+.slide.dark .stat .l{color:rgba(234,253,255,.78)}
+
+/* Cover */
+.cover-drop{font-size:clamp(60px,9vw,120px);filter:drop-shadow(0 12px 24px rgba(94,234,212,.5));animation:bob 4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.wordmark{font-family:var(--display);font-weight:800;font-size:clamp(54px,11vw,150px);letter-spacing:-.04em;line-height:.9}
+
+/* Tech chips */
+.tech{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}
+.tech span{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:10px 18px;font-weight:600;font-size:15px}
+
+.note{position:absolute;bottom:5vh;left:8vw;right:8vw;font-size:12px;color:var(--muted);opacity:.7}
+
+/* Navegación */
+.nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:8px 12px;z-index:50;box-shadow:0 8px 24px rgba(8,51,68,.12)}
+.nav button{border:none;background:var(--a500);color:#fff;width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer;display:grid;place-items:center}
+.nav button:active{transform:scale(.94)}
+.counter{font-family:var(--display);font-weight:700;font-size:14px;color:var(--ink);min-width:54px;text-align:center}
+.hint{position:fixed;top:18px;right:22px;font-size:12px;color:var(--muted);z-index:50}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.flow{gap:10px}.arrow{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="hint">← → para navegar</div>
+<div class="deck" id="deck">
+
+  <!-- 1. Cover -->
+  <section class="slide dark">
+    <div class="anim cover-drop">💧</div>
+    <div class="anim wordmark">kowen</div>
+    <p class="anim lead" style="max-width:34ch;color:#eafdff">Agua purificada, conectada e inteligente.</p>
+    <p class="anim" style="margin-top:28px;font-weight:600;color:var(--mint)">Piloto Chile · 2026</p>
+  </section>
+
+  <!-- 2. Problema -->
+  <section class="slide light">
+    <div class="anim kicker">El problema</div>
+    <h2 class="anim">El agua se vende cara,<br>en plástico y a ciegas.</h2>
+    <div class="rows">
+      <div class="anim row"><span class="ic">💸</span><span>El bidón y la botella son caros y poco prácticos para el consumo diario.</span></div>
+      <div class="anim row"><span class="ic">🛢️</span><span>Toneladas de plástico de un solo uso.</span></div>
+      <div class="anim row"><span class="ic">🤖</span><span>Las máquinas de agua actuales son "tontas": sin control remoto, sin datos, sin fidelización. Las fallas se descubren cuando el cliente reclama.</span></div>
+    </div>
+  </section>
+
+  <!-- 3. Solución -->
+  <section class="slide dark">
+    <div class="anim kicker">La solución</div>
+    <h2 class="anim">Una red de máquinas de agua<br>autónomas y conectadas.</h2>
+    <p class="anim lead" style="max-width:38ch">Agua purificada por ósmosis inversa + UV, despachada por litro. El cliente llena su bidón, paga desde el celular y se fideliza. Vos operás toda la red desde tu teléfono.</p>
+  </section>
+
+  <!-- 4. Cómo funciona -->
+  <section class="slide dark">
+    <div class="anim kicker">Cómo funciona</div>
+    <h2 class="anim">Máquina · Nube · App</h2>
+    <div class="anim flow">
+      <div class="node"><div class="big">🚰</div><div class="t">Máquina</div><div class="s">Autónoma · purifica y despacha</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><div class="big">☁️</div><div class="t">Nube</div><div class="s">Telemetría · comandos · datos</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><div class="big">📱</div><div class="t">App + Operador</div><div class="s">Clientes · monitoreo · alertas</div></div>
+    </div>
+  </section>
+
+  <!-- 5. La máquina -->
+  <section class="slide light">
+    <div class="anim kicker">Lo que construimos · 1</div>
+    <h2 class="anim">La máquina: autónoma de verdad</h2>
+    <div class="grid">
+      <div class="anim gcard"><h3>🧠 Control propio</h3><p>Reemplazamos la placa propietaria con nuestro propio sistema: no dependemos del fabricante.</p></div>
+      <div class="anim gcard"><h3>♻️ Se autoabastece</h3><p>Detecta el nivel y rellena sola por ósmosis. Siempre lista para despachar.</p></div>
+      <div class="anim gcard"><h3>💧 Purificación</h3><p>Ósmosis inversa + luz UV. Agua de calidad, controlada.</p></div>
+      <div class="anim gcard"><h3>🥤 Despacho a elección</h3><p>El cliente elige 5, 10 o 20 litros desde la app.</p></div>
+    </div>
+  </section>
+
+  <!-- 6. La plataforma -->
+  <section class="slide light">
+    <div class="anim kicker">Lo que construimos · 2</div>
+    <h2 class="anim">Operación inteligente,<br>una persona, muchas máquinas</h2>
+    <div class="rows" style="max-width:42ch">
+      <div class="anim row"><span class="ic">📡</span><span>Telemetría en tiempo real de cada máquina en la nube.</span></div>
+      <div class="anim row"><span class="ic">🔔</span><span>Alertas por Telegram 24/7: sin presión, máquina caída, mantención.</span></div>
+      <div class="anim row"><span class="ic">🎮</span><span>Control y comandos remotos desde el celular.</span></div>
+      <div class="anim row"><span class="ic">📈</span><span>Datos de consumo y ventas para decidir mejor.</span></div>
+    </div>
+  </section>
+
+  <!-- 7. App clientes -->
+  <section class="slide dark">
+    <div class="anim kicker">Lo que construimos · 3</div>
+    <h2 class="anim">Una app que fideliza</h2>
+    <div class="grid">
+      <div class="anim gcard"><h3>⚡ Registro 1-toque</h3><p>Email o Google. Recarga de bienvenida gratis.</p></div>
+      <div class="anim gcard"><h3>💳 Billetera + packs</h3><p>Saldo y packs prepagos con descuento, vía MercadoPago.</p></div>
+      <div class="anim gcard"><h3>🎁 Fidelización</h3><p>Recargas gratis, códigos de promo y premios por recurrencia.</p></div>
+      <div class="anim gcard"><h3>📲 QR o código</h3><p>Escaneás el QR de la máquina o entrás su código. Listo.</p></div>
+    </div>
+  </section>
+
+  <!-- 8. Diferenciadores -->
+  <section class="slide light">
+    <div class="anim kicker">Por qué ganamos</div>
+    <h2 class="anim">Datos + autonomía + fidelización</h2>
+    <div class="rows" style="max-width:44ch">
+      <div class="anim row"><span class="ic">🆚</span><span><b>Control total y datos</b> donde las máquinas tradicionales son cajas ciegas.</span></div>
+      <div class="anim row"><span class="ic">📉</span><span><b>Costo operativo bajo:</b> autónoma + monitoreo remoto = menos visitas, menos pérdidas.</span></div>
+      <div class="anim row"><span class="ic">🔒</span><span><b>Prepago y fidelización:</b> caja por adelantado y clientes que vuelven.</span></div>
+      <div class="anim row"><span class="ic">📦</span><span><b>Escalable:</b> el mismo software corre 1 o 50 máquinas.</span></div>
+    </div>
+  </section>
+
+  <!-- 9. Modelo de negocio -->
+  <section class="slide dark">
+    <div class="anim kicker">Modelo de negocio</div>
+    <h2 class="anim">Agua de red → margen alto</h2>
+    <div class="anim stats">
+      <div class="stat"><div class="n">$100<span style="font-size:.5em">/L</span></div><div class="l">Venta por litro (configurable)</div></div>
+      <div class="stat"><div class="n">−25%</div><div class="l">Packs prepagos: caja anticipada + lock-in</div></div>
+      <div class="stat"><div class="n">10-15</div><div class="l">Máquinas del piloto, listas para escalar</div></div>
+    </div>
+    <p class="anim lead" style="max-width:40ch;margin-top:30px">Recargas gratis y promos para captar; packs y consumo recurrente para retener.</p>
+  </section>
+
+  <!-- 10. Tracción del piloto -->
+  <section class="slide light">
+    <div class="anim kicker">Estado del piloto</div>
+    <h2 class="anim">No es una idea. Está funcionando.</h2>
+    <div class="rows" style="max-width:44ch">
+      <div class="anim row"><span class="ic">✅</span><span>Máquina operando <b>autónoma</b> (autollenado + despacho).</span></div>
+      <div class="anim row"><span class="ic">✅</span><span>Telemetría y <b>alertas 24/7</b> en producción.</span></div>
+      <div class="anim row"><span class="ic">✅</span><span>App de clientes con <b>pagos MercadoPago end-to-end</b>.</span></div>
+      <div class="anim row"><span class="ic">✅</span><span>Todo construido sobre infraestructura <b>escalable y de bajo costo</b>.</span></div>
+    </div>
+  </section>
+
+  <!-- 11. Tecnología -->
+  <section class="slide dark">
+    <div class="anim kicker">Tecnología</div>
+    <h2 class="anim">Robusto, escalable, eficiente</h2>
+    <div class="anim tech">
+      <span>Raspberry Pi</span><span>Supabase</span><span>Vercel</span><span>Tailscale</span><span>MercadoPago</span><span>Telegram</span>
+    </div>
+    <p class="anim lead" style="max-width:40ch">Stack moderno y económico: el costo de operar la red crece muy por debajo de la cantidad de máquinas.</p>
+  </section>
+
+  <!-- 12. Roadmap -->
+  <section class="slide light">
+    <div class="anim kicker">Próximos pasos</div>
+    <h2 class="anim">De piloto a red</h2>
+    <div class="rows" style="max-width:42ch">
+      <div class="anim row"><span class="ic">🚰</span><span>Caudalímetro → cobro por litro exacto.</span></div>
+      <div class="anim row"><span class="ic">🌐</span><span>Marca propia (kowen.cl) + QR en cada máquina.</span></div>
+      <div class="anim row"><span class="ic">📊</span><span>Panel único del fleet + más medios de pago.</span></div>
+      <div class="anim row"><span class="ic">📈</span><span>Escalar a 10-15 máquinas y replicar.</span></div>
+    </div>
+    <p class="note">Espacio para tus cifras reales: tamaño de mercado, proyección de ventas, inversión buscada y uso de fondos.</p>
+  </section>
+
+  <!-- 13. Cierre -->
+  <section class="slide dark">
+    <div class="anim cover-drop" style="font-size:clamp(48px,7vw,90px)">💧</div>
+    <h1 class="anim" style="margin-top:10px">Escalemos el<br>agua inteligente.</h1>
+    <p class="anim lead" style="max-width:36ch;color:#eafdff">Kowen — agua purificada, conectada, rentable.</p>
+    <p class="anim" style="margin-top:26px;font-weight:600;color:var(--mint)">impo.rrchile@gmail.com</p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="Anterior">‹</button>
+  <span class="counter" id="counter">1 / 13</span>
+  <button id="next" aria-label="Siguiente">›</button>
+</div>
+
+<script>
+const deck=document.getElementById('deck');
+const slides=[...document.querySelectorAll('.slide')];
+const counter=document.getElementById('counter');
+let idx=0;
+function go(n){idx=Math.max(0,Math.min(slides.length-1,n));slides[idx].scrollIntoView({behavior:'smooth',inline:'start'});}
+document.getElementById('prev').onclick=()=>go(idx-1);
+document.getElementById('next').onclick=()=>go(idx+1);
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();go(idx+1);}
+  if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(idx-1);}
+});
+// Slide activa: actualizar contador + animar
+const io=new IntersectionObserver(es=>{
+  es.forEach(en=>{
+    if(en.isIntersecting){
+      en.target.classList.add('in');
+      idx=slides.indexOf(en.target);
+      counter.textContent=(idx+1)+' / '+slides.length;
+    }
+  });
+},{root:deck,threshold:.6});
+slides.forEach(s=>io.observe(s));
+slides[0].classList.add('in');
+</script>
+</body>
+</html>
