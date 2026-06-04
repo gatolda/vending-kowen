@@ -6,104 +6,111 @@
 <title>Kowen · Presentación</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#e3f3f4; --ink:#07262c; --muted:#5a7e85; --surface:#fff;
-  --a700:#0e7490; --a600:#0891b2; --a500:#06b6d4; --a400:#22d3ee; --mint:#5eead4;
-  --line:rgba(7,38,44,.10);
-  --display:'Bricolage Grotesque',sans-serif; --body:'Hanken Grotesk',sans-serif;
+  --teal:#05657E; --teal2:#44A1B9; --aqua:#6FC6D8; --aqua-l:#96D2E3;
+  --ink:#06303d; --muted:#5d8088; --bg:#eef6f8; --surface:#fff; --line:rgba(6,48,61,.10);
+  --display:'Fredoka',sans-serif; --body:'Hanken Grotesk',sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;overflow:hidden}
 body{font-family:var(--body);color:var(--ink);background:var(--bg)}
 
-/* Deck horizontal */
 .deck{display:flex;height:100vh;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
 .deck::-webkit-scrollbar{display:none}
 .slide{flex:0 0 100vw;height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:7vh 8vw;position:relative;overflow:hidden}
 
-/* Fondos */
 .slide.light{background:
-  radial-gradient(900px 600px at 90% -10%,rgba(34,211,238,.30),transparent 58%),
-  radial-gradient(700px 520px at -10% 110%,rgba(94,234,212,.26),transparent 55%),var(--bg)}
+  radial-gradient(900px 600px at 92% -12%,rgba(111,198,216,.30),transparent 58%),
+  radial-gradient(680px 520px at -10% 110%,rgba(150,210,227,.30),transparent 55%),var(--bg)}
 .slide.dark{color:#eafdff;background:
-  radial-gradient(700px 500px at 85% 10%,rgba(94,234,212,.30),transparent 60%),
-  linear-gradient(145deg,#063a44,#0e7490 55%,#0891b2)}
-.slide.dark .muted{color:rgba(234,253,255,.72)}
-.slide.dark .chip{background:rgba(255,255,255,.14);color:#eafdff}
+  radial-gradient(720px 520px at 88% 8%,rgba(111,198,216,.28),transparent 60%),
+  linear-gradient(150deg,#04515f,var(--teal) 55%,#0a7591)}
+.slide.dark .muted{color:rgba(234,253,255,.74)}
 
-/* Animación al entrar */
 .slide .anim{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
 .slide.in .anim{opacity:1;transform:none}
 .slide .anim:nth-child(2){transition-delay:.06s}.slide .anim:nth-child(3){transition-delay:.12s}
 .slide .anim:nth-child(4){transition-delay:.18s}.slide .anim:nth-child(5){transition-delay:.24s}
 .slide .anim:nth-child(6){transition-delay:.30s}
 
-/* Tipografía */
-.kicker{font-family:var(--body);font-weight:700;font-size:clamp(12px,1.5vw,15px);text-transform:uppercase;letter-spacing:.14em;color:var(--a600);margin-bottom:18px}
-.slide.dark .kicker{color:var(--mint)}
-h1{font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-height:1.02;font-size:clamp(40px,7vw,92px)}
-h2{font-family:var(--display);font-weight:800;letter-spacing:-.025em;line-height:1.05;font-size:clamp(30px,5vw,60px)}
-.lead{font-size:clamp(17px,2.2vw,26px);line-height:1.5;color:var(--muted);max-width:30ch;margin-top:22px}
-.slide.dark .lead{color:rgba(234,253,255,.85)}
-p{line-height:1.55}
-.chip{display:inline-block;font-family:var(--body);font-weight:700;font-size:13px;background:rgba(6,182,212,.12);color:var(--a700);padding:6px 14px;border-radius:999px}
+.kicker{font-family:var(--body);font-weight:700;font-size:clamp(12px,1.5vw,15px);text-transform:uppercase;letter-spacing:.14em;color:var(--teal2);margin-bottom:18px}
+.slide.dark .kicker{color:var(--aqua-l)}
+h1{font-family:var(--display);font-weight:700;letter-spacing:-.02em;line-height:1.02;font-size:clamp(38px,6.5vw,86px)}
+h2{font-family:var(--display);font-weight:600;letter-spacing:-.01em;line-height:1.06;font-size:clamp(30px,5vw,58px)}
+.lead{font-size:clamp(17px,2.2vw,25px);line-height:1.5;color:var(--muted);max-width:32ch;margin-top:22px}
+.slide.dark .lead{color:rgba(234,253,255,.86)}
 
-/* Listas / grid */
-.rows{margin-top:30px;display:flex;flex-direction:column;gap:16px;max-width:34ch}
+/* Logo KOWEN */
+.logo{font-family:var(--display);font-weight:700;display:inline-flex;align-items:center;line-height:.9;letter-spacing:.005em}
+.logo .drop{width:.66em;height:.93em;margin:0 .015em;transform:translateY(.015em)}
+.tagline{font-family:var(--body);font-weight:700;letter-spacing:.34em;font-size:.9rem;text-transform:uppercase;margin-top:14px}
+.tagline .b{color:var(--aqua-l)}
+
+.rows{margin-top:28px;display:flex;flex-direction:column;gap:15px;max-width:40ch}
 .row{display:flex;gap:14px;align-items:flex-start;font-size:clamp(15px,1.9vw,20px)}
-.row .ic{flex:none;font-size:24px;line-height:1}
-.grid{margin-top:34px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:780px}
-.gcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 10px 30px rgba(8,51,68,.07)}
+.row .ic{flex:none;font-size:23px;line-height:1.1}
+.grid{margin-top:32px;display:grid;grid-template-columns:repeat(2,1fr);gap:15px;max-width:760px}
+.gcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(6,53,67,.07)}
 .slide.dark .gcard{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);box-shadow:none}
-.gcard h3{font-family:var(--display);font-weight:700;font-size:19px;margin-bottom:6px}
-.gcard p{font-size:14.5px;color:var(--muted)}
+.gcard h3{font-family:var(--display);font-weight:600;font-size:18px;margin-bottom:5px}
+.gcard p{font-size:14px;color:var(--muted)}
 .slide.dark .gcard p{color:rgba(234,253,255,.78)}
 
-/* Arquitectura */
-.flow{display:flex;align-items:center;gap:18px;margin-top:38px;flex-wrap:wrap}
-.node{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.2);border-radius:18px;padding:20px 22px;text-align:center;min-width:150px}
-.node .big{font-size:30px}.node .t{font-family:var(--display);font-weight:700;margin-top:8px}.node .s{font-size:12.5px;color:rgba(234,253,255,.7);margin-top:3px}
-.arrow{font-size:28px;color:var(--mint)}
+.flow{display:flex;align-items:center;gap:16px;margin-top:36px;flex-wrap:wrap}
+.node{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.2);border-radius:18px;padding:18px 20px;text-align:center;min-width:148px}
+.node .big{font-size:30px}.node .t{font-family:var(--display);font-weight:600;margin-top:8px}.node .s{font-size:12px;color:rgba(234,253,255,.72);margin-top:3px}
+.arrow{font-size:26px;color:var(--aqua-l)}
 
-/* Métricas */
-.stats{display:flex;gap:42px;margin-top:36px;flex-wrap:wrap}
-.stat .n{font-family:var(--display);font-weight:800;font-size:clamp(34px,5vw,60px);color:var(--a500);letter-spacing:-.02em;line-height:1}
-.slide.dark .stat .n{color:var(--mint)}
-.stat .l{font-size:14px;color:var(--muted);margin-top:8px;max-width:18ch}
-.slide.dark .stat .l{color:rgba(234,253,255,.78)}
+.stats{display:flex;gap:42px;margin-top:34px;flex-wrap:wrap}
+.stat .n{font-family:var(--display);font-weight:700;font-size:clamp(34px,5vw,58px);color:var(--aqua-l);letter-spacing:-.01em;line-height:1}
+.stat .l{font-size:14px;color:rgba(234,253,255,.8);margin-top:8px;max-width:18ch}
 
-/* Cover */
-.cover-drop{font-size:clamp(60px,9vw,120px);filter:drop-shadow(0 12px 24px rgba(94,234,212,.5));animation:bob 4s ease-in-out infinite}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
-.wordmark{font-family:var(--display);font-weight:800;font-size:clamp(54px,11vw,150px);letter-spacing:-.04em;line-height:.9}
+/* Split con foto */
+.split{display:flex;align-items:center;gap:6vw;flex-wrap:wrap}
+.split .col{flex:1;min-width:280px}
+.shot{flex:none;width:min(36vw,330px);aspect-ratio:3/4;border-radius:24px;overflow:hidden;border:6px solid #fff;box-shadow:0 26px 60px rgba(6,53,67,.28);position:relative}
+.shot img{width:100%;height:100%;object-fit:cover;object-position:52% 32%}
+.shot::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(5,101,126,.30))}
 
-/* Tech chips */
-.tech{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}
-.tech span{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:10px 18px;font-weight:600;font-size:15px}
-
+.cover-drop{filter:drop-shadow(0 14px 26px rgba(8,40,50,.45));animation:bob 4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-13px)}}
+.tech{display:flex;gap:11px;flex-wrap:wrap;margin-top:32px}
+.tech span{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:9px 17px;font-weight:600;font-size:15px}
+.contact{margin-top:26px;display:flex;flex-direction:column;gap:7px;font-weight:600;font-size:clamp(15px,1.9vw,19px)}
+.contact span{color:var(--aqua-l)}
 .note{position:absolute;bottom:5vh;left:8vw;right:8vw;font-size:12px;color:var(--muted);opacity:.7}
 
-/* Navegación */
-.nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:8px 12px;z-index:50;box-shadow:0 8px 24px rgba(8,51,68,.12)}
-.nav button{border:none;background:var(--a500);color:#fff;width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer;display:grid;place-items:center}
+.nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:8px 12px;z-index:50;box-shadow:0 8px 24px rgba(6,53,67,.14)}
+.nav button{border:none;background:var(--teal);color:#fff;width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer;display:grid;place-items:center}
 .nav button:active{transform:scale(.94)}
-.counter{font-family:var(--display);font-weight:700;font-size:14px;color:var(--ink);min-width:54px;text-align:center}
+.counter{font-family:var(--display);font-weight:600;font-size:14px;color:var(--ink);min-width:54px;text-align:center}
 .hint{position:fixed;top:18px;right:22px;font-size:12px;color:var(--muted);z-index:50}
-@media(max-width:640px){.grid{grid-template-columns:1fr}.flow{gap:10px}.arrow{transform:rotate(90deg)}}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.flow{gap:10px}.arrow{transform:rotate(90deg)}.shot{width:70vw;margin-top:24px}}
 </style>
 </head>
 <body>
+<!-- Gota reutilizable (la O del logo) -->
+<svg width="0" height="0" style="position:absolute"><symbol id="drop" viewBox="0 0 72 100">
+  <clipPath id="dc"><path d="M36 4C36 4 8 42 8 64a28 28 0 0 0 56 0C64 42 36 4 36 4Z"/></clipPath>
+  <g clip-path="url(#dc)">
+    <rect width="72" height="100" fill="#96D2E3"/>
+    <path d="M0 56 Q18 46 36 54 T72 52 V100 H0Z" fill="#44A1B9"/>
+    <path d="M0 72 Q20 62 38 70 T72 68 V100 H0Z" fill="#2C869C"/>
+  </g>
+  <circle cx="55" cy="14" r="9" fill="#BDE6F0"/>
+</symbol></svg>
+
 <div class="hint">← → para navegar</div>
 <div class="deck" id="deck">
 
   <!-- 1. Cover -->
   <section class="slide dark">
-    <div class="anim cover-drop">💧</div>
-    <div class="anim wordmark">kowen</div>
-    <p class="anim lead" style="max-width:34ch;color:#eafdff">Agua purificada, conectada e inteligente.</p>
-    <p class="anim" style="margin-top:28px;font-weight:600;color:var(--mint)">Piloto Chile · 2026</p>
+    <div class="anim logo cover-drop" style="font-size:clamp(56px,12vw,150px)">K<svg class="drop"><use href="#drop"/></svg>WEN</div>
+    <div class="anim tagline"><span class="b">AGUA</span> PURIFICADA</div>
+    <p class="anim lead" style="max-width:34ch;color:#eafdff;margin-top:30px">Última tecnología y máxima calidad. Agua purificada, conectada e inteligente.</p>
+    <p class="anim" style="margin-top:26px;font-weight:600;color:var(--aqua-l)">Piloto Chile · 2026</p>
   </section>
 
   <!-- 2. Problema -->
@@ -113,7 +120,7 @@ p{line-height:1.55}
     <div class="rows">
       <div class="anim row"><span class="ic">💸</span><span>El bidón y la botella son caros y poco prácticos para el consumo diario.</span></div>
       <div class="anim row"><span class="ic">🛢️</span><span>Toneladas de plástico de un solo uso.</span></div>
-      <div class="anim row"><span class="ic">🤖</span><span>Las máquinas de agua actuales son "tontas": sin control remoto, sin datos, sin fidelización. Las fallas se descubren cuando el cliente reclama.</span></div>
+      <div class="anim row"><span class="ic">🤖</span><span>Las máquinas de agua actuales son cajas ciegas: sin control remoto, sin datos, sin fidelización. Las fallas se descubren cuando el cliente reclama.</span></div>
     </div>
   </section>
 
@@ -121,7 +128,7 @@ p{line-height:1.55}
   <section class="slide dark">
     <div class="anim kicker">La solución</div>
     <h2 class="anim">Una red de máquinas de agua<br>autónomas y conectadas.</h2>
-    <p class="anim lead" style="max-width:38ch">Agua purificada por ósmosis inversa + UV, despachada por litro. El cliente llena su bidón, paga desde el celular y se fideliza. Vos operás toda la red desde tu teléfono.</p>
+    <p class="anim lead" style="max-width:40ch">Agua purificada por ósmosis inversa + UV, despachada por litro. El cliente llena su bidón, paga desde el celular y se fideliza. Vos operás toda la red desde tu teléfono.</p>
   </section>
 
   <!-- 4. Cómo funciona -->
@@ -137,22 +144,26 @@ p{line-height:1.55}
     </div>
   </section>
 
-  <!-- 5. La máquina -->
+  <!-- 5. La máquina (con foto) -->
   <section class="slide light">
-    <div class="anim kicker">Lo que construimos · 1</div>
-    <h2 class="anim">La máquina: autónoma de verdad</h2>
-    <div class="grid">
-      <div class="anim gcard"><h3>🧠 Control propio</h3><p>Reemplazamos la placa propietaria con nuestro propio sistema: no dependemos del fabricante.</p></div>
-      <div class="anim gcard"><h3>♻️ Se autoabastece</h3><p>Detecta el nivel y rellena sola por ósmosis. Siempre lista para despachar.</p></div>
-      <div class="anim gcard"><h3>💧 Purificación</h3><p>Ósmosis inversa + luz UV. Agua de calidad, controlada.</p></div>
-      <div class="anim gcard"><h3>🥤 Despacho a elección</h3><p>El cliente elige 5, 10 o 20 litros desde la app.</p></div>
+    <div class="split">
+      <div class="col">
+        <div class="anim kicker">Lo que construimos · 1</div>
+        <h2 class="anim">La máquina: autónoma de verdad</h2>
+        <div class="rows" style="max-width:30ch">
+          <div class="anim row"><span class="ic">🧠</span><span><b>Control propio:</b> reemplazamos la placa del fabricante.</span></div>
+          <div class="anim row"><span class="ic">♻️</span><span><b>Se autoabastece</b> y purifica (ósmosis + UV).</span></div>
+          <div class="anim row"><span class="ic">🥤</span><span>Despacha <b>5, 10 o 20 L</b> a elección.</span></div>
+        </div>
+      </div>
+      <div class="anim shot"><img src="maquina.jpg" alt="Máquina Kowen"></div>
     </div>
   </section>
 
   <!-- 6. La plataforma -->
   <section class="slide light">
     <div class="anim kicker">Lo que construimos · 2</div>
-    <h2 class="anim">Operación inteligente,<br>una persona, muchas máquinas</h2>
+    <h2 class="anim">Una persona, muchas máquinas</h2>
     <div class="rows" style="max-width:42ch">
       <div class="anim row"><span class="ic">📡</span><span>Telemetría en tiempo real de cada máquina en la nube.</span></div>
       <div class="anim row"><span class="ic">🔔</span><span>Alertas por Telegram 24/7: sin presión, máquina caída, mantención.</span></div>
@@ -194,18 +205,22 @@ p{line-height:1.55}
       <div class="stat"><div class="n">−25%</div><div class="l">Packs prepagos: caja anticipada + lock-in</div></div>
       <div class="stat"><div class="n">10-15</div><div class="l">Máquinas del piloto, listas para escalar</div></div>
     </div>
-    <p class="anim lead" style="max-width:40ch;margin-top:30px">Recargas gratis y promos para captar; packs y consumo recurrente para retener.</p>
+    <p class="anim lead" style="max-width:40ch;margin-top:28px">Recargas gratis y promos para captar; packs y consumo recurrente para retener.</p>
   </section>
 
-  <!-- 10. Tracción del piloto -->
+  <!-- 10. Tracción -->
   <section class="slide light">
-    <div class="anim kicker">Estado del piloto</div>
-    <h2 class="anim">No es una idea. Está funcionando.</h2>
-    <div class="rows" style="max-width:44ch">
-      <div class="anim row"><span class="ic">✅</span><span>Máquina operando <b>autónoma</b> (autollenado + despacho).</span></div>
-      <div class="anim row"><span class="ic">✅</span><span>Telemetría y <b>alertas 24/7</b> en producción.</span></div>
-      <div class="anim row"><span class="ic">✅</span><span>App de clientes con <b>pagos MercadoPago end-to-end</b>.</span></div>
-      <div class="anim row"><span class="ic">✅</span><span>Todo construido sobre infraestructura <b>escalable y de bajo costo</b>.</span></div>
+    <div class="split">
+      <div class="col">
+        <div class="anim kicker">Estado del piloto</div>
+        <h2 class="anim">No es una idea.<br>Está funcionando.</h2>
+        <div class="rows" style="max-width:34ch">
+          <div class="anim row"><span class="ic">✅</span><span>Máquina operando <b>autónoma</b>.</span></div>
+          <div class="anim row"><span class="ic">✅</span><span>Telemetría + <b>alertas 24/7</b> en producción.</span></div>
+          <div class="anim row"><span class="ic">✅</span><span>App con <b>pagos MercadoPago</b> end-to-end.</span></div>
+        </div>
+      </div>
+      <div class="anim shot"><img src="maquina2.jpg" alt="Máquina Kowen instalada"></div>
     </div>
   </section>
 
@@ -234,10 +249,14 @@ p{line-height:1.55}
 
   <!-- 13. Cierre -->
   <section class="slide dark">
-    <div class="anim cover-drop" style="font-size:clamp(48px,7vw,90px)">💧</div>
-    <h1 class="anim" style="margin-top:10px">Escalemos el<br>agua inteligente.</h1>
-    <p class="anim lead" style="max-width:36ch;color:#eafdff">Kowen — agua purificada, conectada, rentable.</p>
-    <p class="anim" style="margin-top:26px;font-weight:600;color:var(--mint)">impo.rrchile@gmail.com</p>
+    <div class="anim logo cover-drop" style="font-size:clamp(44px,8vw,86px)">K<svg class="drop"><use href="#drop"/></svg>WEN</div>
+    <h1 class="anim" style="margin-top:18px;font-size:clamp(30px,5vw,56px)">Escalemos el<br>agua inteligente.</h1>
+    <div class="anim contact">
+      <div>🌐 <span>www.kowen.cl</span></div>
+      <div>📷 <span>@kowenagua</span></div>
+      <div>📱 <span>+56 9 9905 1418</span></div>
+      <div>📍 <span>Lira 247, San Joaquín</span></div>
+    </div>
   </section>
 
 </div>
@@ -260,16 +279,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();go(idx+1);}
   if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(idx-1);}
 });
-// Slide activa: actualizar contador + animar
-const io=new IntersectionObserver(es=>{
-  es.forEach(en=>{
-    if(en.isIntersecting){
-      en.target.classList.add('in');
-      idx=slides.indexOf(en.target);
-      counter.textContent=(idx+1)+' / '+slides.length;
-    }
-  });
-},{root:deck,threshold:.6});
+const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){en.target.classList.add('in');idx=slides.indexOf(en.target);counter.textContent=(idx+1)+' / '+slides.length;}})},{root:deck,threshold:.6});
 slides.forEach(s=>io.observe(s));
 slides[0].classList.add('in');
 </script>
